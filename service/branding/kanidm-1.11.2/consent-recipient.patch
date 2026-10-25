@@ -1,0 +1,165 @@
+--- a/server/core/src/https/views/oauth2.rs
++++ b/server/core/src/https/views/oauth2.rs
+@@ -35,10 +35,17 @@
+ #[template(path = "oauth2_consent_request.html")]
+ struct ConsentRequestView {
+     client_name: String,
++    recipient_origin: Option<String>,
++    consent_claims: Option<String>,
+     // scopes: BTreeSet<String>,
+     pii_scopes: BTreeSet<String>,
+     consent_token: String,
+     redirect: Option<String>,
++}
++
++fn consent_recipient_origin(redirect_uri: &url::Url) -> Option<String> {
++    matches!(redirect_uri.scheme(), "http" | "https")
++        .then(|| redirect_uri.origin().ascii_serialization())
+ }
+ 
+ #[derive(Template, WebTemplate)]
+@@ -159,6 +166,7 @@
+             client_name,
+             scopes: _,
+             pii_scopes,
++            consent_claims,
+             consent_token,
+         }) => {
+             // We can just render the form now, the consent token has everything we need.
+@@ -166,6 +174,8 @@
+                 jar,
+                 ConsentRequestView {
+                     client_name,
++                    recipient_origin: consent_recipient_origin(&auth_req.redirect_uri),
++                    consent_claims,
+                     // scopes,
+                     pii_scopes,
+                     consent_token,
+--- a/server/core/templates/oauth2_consent_request.html
++++ b/server/core/templates/oauth2_consent_request.html
+@@ -8,13 +8,14 @@
+ (% block body %)
+ <main id="main" class="flex-shrink-0 form-signin m-auto">
+ 	<h2 class="h3 mb-3 fw-normal">Consent to Proceed to (( client_name ))</h2>
++	(% if let Some(recipient_origin) = recipient_origin %)
++		<p class="help consent-recipient">(( recipient_origin ))</p>
++	(% endif %)
++	<div(% if let Some(consent_claims) = consent_claims %) data-identity-consent-claims="(( consent_claims ))"(% endif %)>
+ 	(% if pii_scopes.is_empty() %)
+-		<div>
+ 			<p>This site will not have access to your personal information.</p>
+ 			<p>If this site requests personal information in the future we will check with you.</p>
+-		</div>
+ 	(% else %)
+-		<div>
+ 			<p>This site has requested access to the following personal information:</p>
+ 			<ul>
+ 			(% for pii_scope in pii_scopes %)
+@@ -22,8 +23,8 @@
+ 			(% endfor %)
+ 			</ul>
+ 			<p>If this site requests different personal information in the future we will check with you again.</p>
+-		</div>
+ 	(% endif %)
++	</div>
+ 	<form id="login" action="/ui/oauth2/consent" method="post">
+ 		(% if let Some(redirect) = redirect %)
+ 			<input type="hidden" id="redirect" name="redirect" value="(( redirect ))" />
+--- a/server/core/src/https/oauth2.rs
++++ b/server/core/src/https/oauth2.rs
+@@ -200,6 +200,7 @@
+             client_name,
+             scopes,
+             pii_scopes,
++            consent_claims: _,
+             consent_token,
+         }) => {
+             // Render a redirect to the consent page for the user to interact with
+--- a/server/core/src/actors/v1_read.rs
++++ b/server/core/src/actors/v1_read.rs
+@@ -1369,7 +1369,26 @@
+             .ok();
+ 
+         // Now we can send to the idm server for authorisation checking.
+-        idms_prox_read.check_oauth2_authorisation(ident.as_ref(), &auth_req, &auth_req_ctx, ct)
++        let mut response = idms_prox_read.check_oauth2_authorisation(
++            ident.as_ref(),
++            &auth_req,
++            &auth_req_ctx,
++            ct,
++        )?;
++
++        if let (
++            Some(ident),
++            AuthoriseResponse::ConsentRequested {
++                scopes,
++                consent_claims,
++                ..
++            },
++        ) = (ident.as_ref(), &mut response)
++        {
++            *consent_claims =
++                idms_prox_read.oauth2_consent_claims(ident, &auth_req.client_id, scopes)?;
++        }
++        Ok(response)
+     }
+ 
+     #[instrument(
+--- a/server/lib/src/idm/oauth2.rs
++++ b/server/lib/src/idm/oauth2.rs
+@@ -310,6 +310,7 @@
+         scopes: BTreeSet<String>,
+         // Extra PII that may be requested
+         pii_scopes: BTreeSet<String>,
++        consent_claims: Option<String>,
+         // The users displayname (?)
+         // pub display_name: String,
+         // The token we need to be given back to allow this to proceed
+@@ -2661,9 +2662,47 @@
+                 client_name: o2rs.displayname.clone(),
+                 scopes: granted_scopes.into_iter().collect(),
+                 pii_scopes,
++                consent_claims: None,
+                 consent_token,
+             })
+         }
++    }
++
++    pub fn oauth2_consent_claims(
++        &mut self,
++        ident: &Identity,
++        client_id: &str,
++        scopes: &BTreeSet<String>,
++    ) -> Result<Option<String>, Oauth2Error> {
++        if !scopes.contains(OAUTH2_SCOPE_OPENID) {
++            return Ok(None);
++        }
++
++        let o2rs = self
++            .oauth2rs
++            .inner
++            .rs_set_get(client_id)
++            .ok_or(Oauth2Error::InvalidClientId)?;
++        let entry = ident
++            .get_user_entry()
++            .ok_or(Oauth2Error::ServerError(OperationError::InvalidState))?;
++        let account = Account::try_from_entry_ro(&entry, &mut self.qs_read)
++            .map_err(Oauth2Error::ServerError)?;
++
++        #[derive(Serialize)]
++        struct ConsentClaims {
++            #[serde(flatten)]
++            s_claims: OidcClaims,
++            #[serde(flatten)]
++            claims: BTreeMap<String, serde_json::Value>,
++        }
++
++        serde_json::to_string(&ConsentClaims {
++            s_claims: s_claims_for_account(o2rs, &account, scopes),
++            claims: extra_claims_for_account(&account, &o2rs.claim_map, scopes),
++        })
++        .map(Some)
++        .map_err(|_| Oauth2Error::ServerError(OperationError::SerdeJsonError))
+     }
+ 
+     #[instrument(level = "debug", skip_all)]

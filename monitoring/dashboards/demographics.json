@@ -1,0 +1,2401 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2",
+  "kind": "DashboardWithAccessInfo",
+  "metadata": {
+    "annotations": {
+      "grafana.app/folder": "identity"
+    },
+    "name": "member-demographics"
+  },
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "builtIn": true,
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "legacyOptions": {
+            "type": "dashboard"
+          },
+          "name": "Annotations & Alerts",
+          "query": {
+            "datasource": {
+              "name": "-- Grafana --"
+            },
+            "group": "grafana",
+            "kind": "DataQuery",
+            "spec": {},
+            "version": "v0"
+          }
+        }
+      }
+    ],
+    "cursorSync": "Crosshair",
+    "editable": false,
+    "elements": {
+      "panel-1": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_registration_count and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Submitted registrations for the current academic year, including paused accounts",
+          "id": 1,
+          "links": [],
+          "title": "Current registrations",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unavailable",
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value",
+                "wideLayout": true
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-10": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "sort_desc(identity_registration_demographics{question=\"heard_about\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "{{answer}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "answer"
+                      ],
+                      "mode": "columns"
+                    }
+                  }
+                },
+                {
+                  "group": "merge",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "group": "organize",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "includeByName": {
+                        "answer": true,
+                        "identity_registration_demographics": true
+                      },
+                      "indexByName": {
+                        "answer": 0,
+                        "identity_registration_demographics": 1
+                      },
+                      "renameByName": {
+                        "answer": "Source",
+                        "identity_registration_demographics": "People"
+                      }
+                    }
+                  }
+                },
+                {
+                  "group": "sortBy",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "sort": [
+                        {
+                          "desc": true,
+                          "field": "People"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Multiple selections per registrant",
+          "id": 10,
+          "links": [
+            {
+              "targetBlank": false,
+              "title": "Kanidm lookup",
+              "url": "/d/kanidm-lookup"
+            }
+          ],
+          "title": "Referral sources",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "filterable": true,
+                    "inspect": true,
+                    "wrapHeaderText": true,
+                    "wrapText": true,
+                    "minWidth": 50
+                  },
+                  "noValue": "Unavailable"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Source"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "string"
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "campus": {
+                                "text": "Campus fair, event or flyer"
+                              },
+                              "discord": {
+                                "text": "Discord server or Student Hub"
+                              },
+                              "faculty": {
+                                "text": "Professor or faculty member"
+                              },
+                              "friend": {
+                                "text": "Friend"
+                              },
+                              "newsletter": {
+                                "text": "UCSC newsletter"
+                              },
+                              "not_provided": {
+                                "text": "Not provided"
+                              },
+                              "other": {
+                                "text": "Other"
+                              },
+                              "returning_member": {
+                                "text": "I'm a returning member"
+                              },
+                              "social_media": {
+                                "text": "Social media"
+                              },
+                              "website": {
+                                "text": "SlugSec website"
+                              }
+                            },
+                            "type": "value"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "custom.wrapText",
+                        "value": true
+                      },
+                      {
+                        "id": "custom.minWidth",
+                        "value": 140
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "markdown",
+                          "dynamicHeight": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "People"
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      },
+                      {
+                        "id": "min",
+                        "value": 0
+                      },
+                      {
+                        "id": "unit",
+                        "value": "short"
+                      },
+                      {
+                        "id": "custom.align",
+                        "value": "right"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 100
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "cellHeight": "sm",
+                "enablePagination": false,
+                "footer": {
+                  "show": false
+                },
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": true,
+                    "displayName": "People"
+                  }
+                ]
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-11": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "topk(10, identity_registration_demographics{question=\"studies\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "{{answer}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "answer"
+                      ],
+                      "mode": "columns"
+                    }
+                  }
+                },
+                {
+                  "group": "merge",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "group": "organize",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "includeByName": {
+                        "answer": true,
+                        "identity_registration_demographics": true
+                      },
+                      "indexByName": {
+                        "answer": 0,
+                        "identity_registration_demographics": 1
+                      },
+                      "renameByName": {
+                        "answer": "Field of study",
+                        "identity_registration_demographics": "People"
+                      }
+                    }
+                  }
+                },
+                {
+                  "group": "sortBy",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "sort": [
+                        {
+                          "desc": true,
+                          "field": "People"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Multiple selections per registrant",
+          "id": 11,
+          "links": [],
+          "title": "Top 10 fields of study",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "filterable": true,
+                    "inspect": true,
+                    "wrapHeaderText": true,
+                    "wrapText": true,
+                    "minWidth": 50
+                  },
+                  "noValue": "Unavailable"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Field of study"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "string"
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "ancient_studies": {
+                                "text": "Ancient Studies"
+                              },
+                              "anthropology": {
+                                "text": "Anthropology"
+                              },
+                              "applied_mathematics": {
+                                "text": "Applied Mathematics"
+                              },
+                              "applied_physics": {
+                                "text": "Applied Physics"
+                              },
+                              "assistive_technology": {
+                                "text": "Assistive Technology"
+                              },
+                              "astrophysics": {
+                                "text": "Astrophysics"
+                              },
+                              "biochemistry": {
+                                "text": "Biochemistry and Molecular Biology"
+                              },
+                              "bioelectronics_biophotonics": {
+                                "text": "Bioelectronics and Biophotonics"
+                              },
+                              "bioinformatics": {
+                                "text": "Bioinformatics"
+                              },
+                              "biology": {
+                                "text": "Biology"
+                              },
+                              "biomolecular_engineering": {
+                                "text": "Biomolecular Engineering and Bioinformatics"
+                              },
+                              "black_studies": {
+                                "text": "Black Studies"
+                              },
+                              "chemistry": {
+                                "text": "Chemistry"
+                              },
+                              "cognitive_science": {
+                                "text": "Cognitive Science"
+                              },
+                              "computer_engineering": {
+                                "text": "Computer Engineering"
+                              },
+                              "computer_science": {
+                                "text": "Computer Science"
+                              },
+                              "computer_science_game_design": {
+                                "text": "Computer Science: Computer Game Design"
+                              },
+                              "dance": {
+                                "text": "Dance"
+                              },
+                              "digital_justice_studies": {
+                                "text": "Digital Justice Studies"
+                              },
+                              "earth_sciences": {
+                                "text": "Earth Sciences"
+                              },
+                              "east_asian_studies": {
+                                "text": "East Asian Studies"
+                              },
+                              "ecology_and_evolutionary_biology": {
+                                "text": "Ecology and Evolutionary Biology"
+                              },
+                              "economics": {
+                                "text": "Economics"
+                              },
+                              "education": {
+                                "text": "Education"
+                              },
+                              "electrical_engineering": {
+                                "text": "Electrical Engineering"
+                              },
+                              "electronic_music": {
+                                "text": "Electronic Music"
+                              },
+                              "environmental_sciences": {
+                                "text": "Environmental Sciences"
+                              },
+                              "film_digital_media": {
+                                "text": "Film and Digital Media"
+                              },
+                              "history": {
+                                "text": "History"
+                              },
+                              "history_art_visual_culture": {
+                                "text": "History of Art and Visual Culture"
+                              },
+                              "history_consciousness": {
+                                "text": "History of Consciousness"
+                              },
+                              "human_biology": {
+                                "text": "Human Biology"
+                              },
+                              "italian_studies": {
+                                "text": "Italian Studies"
+                              },
+                              "jazz_improvisation": {
+                                "text": "Jazz, Spontaneous Composition and Improvisation"
+                              },
+                              "jewish_studies": {
+                                "text": "Jewish Studies"
+                              },
+                              "language_studies": {
+                                "text": "Language Studies"
+                              },
+                              "latin_american_latino_studies": {
+                                "text": "Latin American and Latino Studies"
+                              },
+                              "legal_studies": {
+                                "text": "Legal Studies"
+                              },
+                              "linguistics": {
+                                "text": "Linguistics"
+                              },
+                              "literature": {
+                                "text": "Literature"
+                              },
+                              "marine_biology": {
+                                "text": "Marine Biology"
+                              },
+                              "mathematics": {
+                                "text": "Mathematics"
+                              },
+                              "microbiology": {
+                                "text": "Microbiology"
+                              },
+                              "middle_eastern_north_african_studies": {
+                                "text": "Middle Eastern and North African Studies"
+                              },
+                              "molecular_cell_and_developmental_biology": {
+                                "text": "Molecular, Cell and Developmental Biology"
+                              },
+                              "neuroscience": {
+                                "text": "Neuroscience"
+                              },
+                              "not_provided": {
+                                "text": "Not provided"
+                              },
+                              "other": {
+                                "text": "Other"
+                              },
+                              "philosophy": {
+                                "text": "Philosophy"
+                              },
+                              "physics": {
+                                "text": "Physics"
+                              },
+                              "plant_sciences": {
+                                "text": "Plant Sciences"
+                              },
+                              "politics": {
+                                "text": "Politics"
+                              },
+                              "robotics_engineering": {
+                                "text": "Robotics Engineering"
+                              },
+                              "spanish_studies": {
+                                "text": "Spanish Studies"
+                              },
+                              "statistics": {
+                                "text": "Statistics"
+                              },
+                              "stem_education": {
+                                "text": "Science, Technology, Engineering and Mathematics Education"
+                              },
+                              "sustainability_studies": {
+                                "text": "Sustainability Studies"
+                              },
+                              "technology_and_information_management": {
+                                "text": "Technology and Information Management"
+                              },
+                              "theater_arts": {
+                                "text": "Theater Arts"
+                              },
+                              "undeclared": {
+                                "text": "Undeclared"
+                              },
+                              "western_music": {
+                                "text": "Western Music"
+                              }
+                            },
+                            "type": "value"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "custom.wrapText",
+                        "value": true
+                      },
+                      {
+                        "id": "custom.minWidth",
+                        "value": 140
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "markdown",
+                          "dynamicHeight": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "People"
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      },
+                      {
+                        "id": "min",
+                        "value": 0
+                      },
+                      {
+                        "id": "unit",
+                        "value": "short"
+                      },
+                      {
+                        "id": "custom.align",
+                        "value": "right"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 100
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "cellHeight": "sm",
+                "enablePagination": false,
+                "footer": {
+                  "show": false
+                },
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": true,
+                    "displayName": "People"
+                  }
+                ]
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_registration_period_info and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "{{period}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "period"
+                      ],
+                      "mode": "columns"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "id": 2,
+          "links": [],
+          "title": "Registration year",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "noValue": "Unavailable"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "/^period$/",
+                  "values": false
+                },
+                "textMode": "value",
+                "wideLayout": true
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-4": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "sort_desc(identity_registration_demographics{question=\"gender\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "{{answer}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "answer"
+                      ],
+                      "mode": "columns",
+                      "valueLabel": "answer"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "id": 4,
+          "links": [],
+          "title": "Gender identity",
+          "vizConfig": {
+            "group": "piechart",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unavailable",
+                  "unit": "short"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "male"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Male"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#5794F2",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "female"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Female"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#FF9830",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "nonbinary"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Nonbinary"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#73BF69",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "other"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Other"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#B877D9",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "prefer_not_to_say"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Prefer not to say"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#C0C0C0",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "not_provided"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Not provided"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#8E8E8E",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "displayLabels": [],
+                "legend": {
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true,
+                  "values": [
+                    "value",
+                    "percent"
+                  ]
+                },
+                "pieType": "donut",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "sort": "desc",
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-5": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "sort_desc(identity_registration_demographics{question=\"lgbtq\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "{{answer}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "answer"
+                      ],
+                      "mode": "columns",
+                      "valueLabel": "answer"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "id": 5,
+          "links": [],
+          "title": "LGBT+ community",
+          "vizConfig": {
+            "group": "piechart",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unavailable",
+                  "unit": "short"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "yes"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Yes"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#5794F2",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "no"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "No"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#FF9830",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "prefer_not_to_say"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Prefer not to say"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#C0C0C0",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "not_provided"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Not provided"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#8E8E8E",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "displayLabels": [],
+                "legend": {
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true,
+                  "values": [
+                    "value",
+                    "percent"
+                  ]
+                },
+                "pieType": "donut",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "sort": "desc",
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-6": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "sort_desc(identity_registration_demographics{question=\"veteran\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "{{answer}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "answer"
+                      ],
+                      "mode": "columns",
+                      "valueLabel": "answer"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "id": 6,
+          "links": [],
+          "title": "Veteran",
+          "vizConfig": {
+            "group": "piechart",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unavailable",
+                  "unit": "short"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "yes"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Yes"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#5794F2",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "no"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "No"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#FF9830",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "prefer_not_to_say"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Prefer not to say"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#C0C0C0",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "not_provided"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Not provided"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#8E8E8E",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "displayLabels": [],
+                "legend": {
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true,
+                  "values": [
+                    "value",
+                    "percent"
+                  ]
+                },
+                "pieType": "donut",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "sort": "desc",
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-7": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "sort_desc(identity_registration_demographics{question=\"school_level\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "{{answer}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "answer"
+                      ],
+                      "mode": "columns",
+                      "valueLabel": "answer"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "id": 7,
+          "links": [],
+          "title": "School level",
+          "vizConfig": {
+            "group": "bargauge",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unavailable",
+                  "unit": "short"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "freshman"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Freshman"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#5794F2",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "sophomore"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Sophomore"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#FF9830",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "junior"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Junior"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#73BF69",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "senior"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Senior"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#B877D9",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "masters"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Master's student"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#56D4DD",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "phd"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "PhD student"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#F2495C",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "other"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Other"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#FADE2A",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "alumni"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Alumni"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#FF73CB",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "nonstudent"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Nonstudent"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#8AB8FF",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "not_provided"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Not provided"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#8E8E8E",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "displayMode": "basic",
+                "orientation": "horizontal",
+                "sizing": "manual",
+                "minVizHeight": 32,
+                "maxVizHeight": 40,
+                "minVizWidth": 8,
+                "namePlacement": "top",
+                "text": {
+                  "titleSize": 14
+                },
+                "valueMode": "text",
+                "showUnfilled": true,
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                }
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-8": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "sort_desc(identity_registration_demographics{question=\"shirt_size\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "{{answer}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "answer"
+                      ],
+                      "mode": "columns",
+                      "valueLabel": "answer"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "id": 8,
+          "links": [],
+          "title": "T-shirt size",
+          "vizConfig": {
+            "group": "piechart",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unavailable",
+                  "unit": "short"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "xs"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "XS"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#5794F2",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "s"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "S"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#FF9830",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "m"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "M"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#73BF69",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "l"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "L"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#B877D9",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "xl"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "XL"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#56D4DD",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "xxl"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "XXL"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#F2495C",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "other"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Other"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#FADE2A",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "not_provided"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Not provided"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#8E8E8E",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "displayLabels": [],
+                "legend": {
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true,
+                  "values": [
+                    "value",
+                    "percent"
+                  ]
+                },
+                "pieType": "donut",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "sort": "desc",
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-9": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "sort_desc(identity_registration_demographics{question=\"ethnicity\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "{{answer}}",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "answer"
+                      ],
+                      "mode": "columns"
+                    }
+                  }
+                },
+                {
+                  "group": "merge",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "group": "organize",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "includeByName": {
+                        "answer": true,
+                        "identity_registration_demographics": true
+                      },
+                      "indexByName": {
+                        "answer": 0,
+                        "identity_registration_demographics": 1
+                      },
+                      "renameByName": {
+                        "answer": "Ethnicity",
+                        "identity_registration_demographics": "People"
+                      }
+                    }
+                  }
+                },
+                {
+                  "group": "sortBy",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "sort": [
+                        {
+                          "desc": true,
+                          "field": "People"
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Multiple selections per registrant",
+          "id": 9,
+          "links": [],
+          "title": "Ethnicity",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "filterable": true,
+                    "inspect": true,
+                    "wrapHeaderText": true,
+                    "wrapText": true,
+                    "minWidth": 50
+                  },
+                  "noValue": "Unavailable"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Ethnicity"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "string"
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "american_indian_alaska_native": {
+                                "text": "American Indian or Alaska Native"
+                              },
+                              "asian": {
+                                "text": "Asian"
+                              },
+                              "black_african_american": {
+                                "text": "Black or African American"
+                              },
+                              "hispanic_latino_spanish": {
+                                "text": "Hispanic, Latino, or Spanish origin"
+                              },
+                              "native_hawaiian_pacific_islander": {
+                                "text": "Native Hawaiian or Pacific Islander"
+                              },
+                              "not_provided": {
+                                "text": "Not provided"
+                              },
+                              "other": {
+                                "text": "Other"
+                              },
+                              "prefer_not_to_say": {
+                                "text": "Prefer not to say"
+                              },
+                              "white": {
+                                "text": "White"
+                              }
+                            },
+                            "type": "value"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "custom.wrapText",
+                        "value": true
+                      },
+                      {
+                        "id": "custom.minWidth",
+                        "value": 140
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "markdown",
+                          "dynamicHeight": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "People"
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      },
+                      {
+                        "id": "min",
+                        "value": 0
+                      },
+                      {
+                        "id": "unit",
+                        "value": "short"
+                      },
+                      {
+                        "id": "custom.align",
+                        "value": "right"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 100
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "cellHeight": "sm",
+                "enablePagination": false,
+                "footer": {
+                  "show": false
+                },
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": true,
+                    "displayName": "People"
+                  }
+                ]
+              }
+            },
+            "version": ""
+          }
+        }
+      }
+    },
+    "layout": {
+      "kind": "RowsLayout",
+      "spec": {
+        "rows": [
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 2,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 280,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 168,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-1"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-2"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 2,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 500,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 400,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-4"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-5"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 2,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 500,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 400,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-6"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-7"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 2,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 500,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 480,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-8"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-10"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 2,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 500,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 440,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-9"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-11"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "links": [
+      {
+        "asDropdown": false,
+        "icon": "",
+        "includeVars": false,
+        "keepTime": false,
+        "tags": [],
+        "targetBlank": false,
+        "title": "Kanidm Health",
+        "tooltip": "",
+        "type": "link",
+        "url": "/d/kanidm-health"
+      },
+      {
+        "asDropdown": false,
+        "icon": "",
+        "includeVars": false,
+        "keepTime": false,
+        "tags": [],
+        "targetBlank": false,
+        "title": "Member Demographics",
+        "tooltip": "",
+        "type": "link",
+        "url": "/d/member-demographics"
+      },
+      {
+        "asDropdown": false,
+        "icon": "",
+        "includeVars": false,
+        "keepTime": false,
+        "tags": [],
+        "targetBlank": false,
+        "title": "SSO Activity",
+        "tooltip": "",
+        "type": "link",
+        "url": "/d/auth-activity"
+      },
+      {
+        "asDropdown": false,
+        "icon": "",
+        "includeVars": false,
+        "keepTime": false,
+        "tags": [],
+        "targetBlank": false,
+        "title": "Kanidm lookup",
+        "tooltip": "",
+        "type": "link",
+        "url": "/d/kanidm-lookup"
+      }
+    ],
+    "liveNow": false,
+    "preload": false,
+    "tags": [
+      "kanidm",
+      "membership",
+      "demographics"
+    ],
+    "timeSettings": {
+      "autoRefresh": "5m",
+      "autoRefreshIntervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "fiscalYearStartMonth": 0,
+      "from": "now-24h",
+      "hideTimepicker": true,
+      "timezone": "America/Los_Angeles",
+      "to": "now"
+    },
+    "title": "Member Demographics",
+    "variables": []
+  }
+}

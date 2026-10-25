@@ -1,0 +1,61 @@
+--- a/server/core/templates/base.html
++++ b/server/core/templates/base.html
+@@ -2,7 +2,9 @@
+ <html lang="en">
+ 	<head>
+ 		<meta charset="utf-8" />
+-		<meta name="theme-color" content="white" />
++		<meta name="color-scheme" content="light dark" />
++		<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
++		<meta name="theme-color" content="#212529" media="(prefers-color-scheme: dark)" />
+ 		<meta name="viewport" content="width=device-width" />
+ 
+ 		<title>(% block title %)(( title )) - Kanidm(% endblock %)</title>
+@@ -14,7 +16,7 @@
+ 			integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" />
+ 		<script
+ 			src="/pkg/external/bootstrap.bundle.min.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
+-			integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"></script>
++			integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" defer></script>
+ 		<script
+ 			src="/pkg/style.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
+ 			defer></script>
+--- a/server/core/templates/base_htmx.html
++++ b/server/core/templates/base_htmx.html
+@@ -2,7 +2,9 @@
+ <html lang="en">
+ 	<head>
+ 		<meta charset="utf-8" />
+-		<meta name="theme-color" content="white" />
++		<meta name="color-scheme" content="light dark" />
++		<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
++		<meta name="theme-color" content="#212529" media="(prefers-color-scheme: dark)" />
+ 		<meta name="viewport" content="width=device-width" />
+ 		<!-- https://htmx.org/docs/#response-handling -->
+ 		<meta name="htmx-config" content='{
+@@ -22,10 +24,10 @@
+ 			integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" />
+ 		<script
+ 			src="/pkg/external/bootstrap.bundle.min.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
+-			integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"></script>
++			integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" defer></script>
+ 		<script
+ 			src="/pkg/external/htmx.min.1.9.12.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
+-			integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"></script>
++			integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2" defer></script>
+ 		<script
+ 			src="/pkg/style.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
+ 			defer></script>
+--- a/server/core/templates/user_settings.html
++++ b/server/core/templates/user_settings.html
+@@ -3,8 +3,8 @@
+ (% block title %)Profile(% endblock %)
+ 
+ (% block head %)
+-<script src="/pkg/external/forms.js"></script>
+-<script src="/pkg/external/htmx_bs_validation.js"></script>
++<script src="/pkg/external/forms.js" defer></script>
++<script src="/pkg/external/htmx_bs_validation.js" defer></script>
+ (% endblock %)
+ 
+ (% block main %)

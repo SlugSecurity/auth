@@ -1,0 +1,3 @@
+from .image.svg import SvgPathImage as _SvgPathImage
+
+def make(data: str, *, image_factory: type[_SvgPathImage]) -> _SvgPathImage: ...

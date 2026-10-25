@@ -1,0 +1,125 @@
+--- a/server/lib/src/idm/server.rs
++++ b/server/lib/src/idm/server.rs
+@@ -118,6 +118,15 @@
+     pub(crate) oauth2rs: Oauth2ResourceServersReadTransaction,
+ }
+ 
++#[derive(serde::Serialize)]
++pub(crate) struct OAuth2SignInEvent {
++    pub(crate) event_id: Uuid,
++    pub(crate) at: u64,
++    pub(crate) subject: Uuid,
++    pub(crate) app_id: Uuid,
++    pub(crate) app: String,
++}
++
+ pub struct IdmServerProxyWriteTransaction<'a> {
+     // This does NOT take any read to the memory content, allowing safe
+     // qs operations to occur through this interface.
+@@ -128,6 +137,7 @@
+     crypto_policy: &'a CryptoPolicy,
+     webauthn: &'a Webauthn,
+     pub(crate) oauth2rs: Oauth2ResourceServersWriteTransaction<'a>,
++    pub(crate) oauth2_sign_in_events: Vec<OAuth2SignInEvent>,
+     pub(crate) applications: LdapApplicationsWriteTransaction<'a>,
+ 
+     pub(crate) origin: &'a Url,
+@@ -299,6 +309,7 @@
+             crypto_policy: &self.crypto_policy,
+             webauthn: &self.webauthn,
+             oauth2rs: self.oauth2rs.write(),
++            oauth2_sign_in_events: Vec::new(),
+             applications: self.applications.write(),
+             origin: &self.origin,
+             oauth2_client_providers: self.oauth2_client_providers.write(),
+@@ -2362,7 +2373,12 @@
+         self.oauth2_client_providers.commit();
+ 
+         trace!("cred_update_session.commit");
+-        self.qs_write.commit()
++        self.qs_write.commit()?;
++
++        for event in self.oauth2_sign_in_events {
++            info!("IDENTITY_SSO_V1 {}", serde_json::json!(event));
++        }
++        Ok(())
+     }
+ }
+ 
+--- a/server/lib/src/idm/oauth2.rs
++++ b/server/lib/src/idm/oauth2.rs
+@@ -6,7 +6,8 @@
+ 
+ use crate::idm::account::Account;
+ use crate::idm::server::{
+-    IdmServerProxyReadTransaction, IdmServerProxyWriteTransaction, IdmServerTransaction, Token,
++    IdmServerProxyReadTransaction, IdmServerProxyWriteTransaction, IdmServerTransaction,
++    OAuth2SignInEvent, Token,
+ };
+ use crate::prelude::*;
+ use crate::server::keys::{
+@@ -193,6 +194,7 @@
+     pub(crate) auth_time: Option<OffsetDateTime>,
+     pub(crate) nonce: Option<String>,
+     pub(crate) account_uuid: Uuid,
++    record_sign_in: bool,
+ }
+ 
+ // == internal state formats that we encrypt and send.
+@@ -1588,6 +1590,7 @@
+             auth_time: code_xchg.auth_time,
+             nonce: code_xchg.nonce,
+             account_uuid: code_xchg.account_uuid,
++            record_sign_in: true,
+         };
+ 
+         self.generate_access_token_response(
+@@ -1729,6 +1732,7 @@
+                     auth_time,
+                     nonce,
+                     account_uuid,
++                    record_sign_in: false,
+                 };
+ 
+                 self.generate_access_token_response(
+@@ -1850,6 +1854,7 @@
+             auth_time: None,
+             account_uuid: apit.account_id,
+             nonce: None,
++            record_sign_in: false,
+         };
+ 
+         self.generate_access_token_response(
+@@ -2178,6 +2183,21 @@
+                 admin_error!("Failed to persist OAuth2 session record {:?}", e);
+                 Oauth2Error::ServerError(e)
+             })?;
++
++        if session_ctx.record_sign_in
++            && session_ctx.account_uuid >= DYNAMIC_RANGE_MINIMUM_UUID
++            && entry.has_class(&EntryClass::Person)
++            && !entry.has_class(&EntryClass::ServiceAccount)
++            && !entry.has_class(&EntryClass::System)
++        {
++            self.oauth2_sign_in_events.push(OAuth2SignInEvent {
++                event_id: session_id,
++                at: ct.as_secs(),
++                subject: session_ctx.account_uuid,
++                app_id: o2rs.uuid,
++                app: o2rs.name.clone(),
++            });
++        }
+ 
+         Ok(AccessTokenResponse {
+             access_token: access_token.to_string(),
+--- a/server/core/src/https/generic.rs
++++ b/server/core/src/https/generic.rs
+@@ -11,7 +11,7 @@
+ use super::ServerState;
+ 
+ pub async fn identity_capabilities() -> Json<serde_json::Value> {
+-    Json(serde_json::json!({ "credential_update_compare": 1 }))
++    Json(serde_json::json!({ "credential_update_compare": 1, "usage_events": 1 }))
+ }
+ 
+ #[utoipa::path(

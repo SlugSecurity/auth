@@ -1,0 +1,1396 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2",
+  "kind": "DashboardWithAccessInfo",
+  "metadata": {
+    "annotations": {
+      "grafana.app/folder": "identity"
+    },
+    "name": "auth-activity"
+  },
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "builtIn": true,
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "legacyOptions": {
+            "type": "dashboard"
+          },
+          "name": "Annotations & Alerts",
+          "query": {
+            "datasource": {
+              "name": "-- Grafana --"
+            },
+            "group": "grafana",
+            "kind": "DataQuery",
+            "spec": {},
+            "version": "v0"
+          }
+        }
+      }
+    ],
+    "cursorSync": "Crosshair",
+    "editable": false,
+    "elements": {
+      "panel-1": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_sso_${view}_users{job=\"kanidm-activity\",${view}=\"$period\"} and on(instance) (time() - identity_sso_export_timestamp_seconds{job=\"kanidm-observer\"} < 90) and on(instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-activity\"} == 1) and on(instance) (time() - timestamp(up{job=\"kanidm-activity\"}) < 150)",
+                        "format": "time_series",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "People who logged in during ${period:text}",
+          "id": 1,
+          "links": [],
+          "title": "",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "displayName": "${view:text} unique users",
+                  "min": 0,
+                  "noValue": "No data",
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "(identity_sso_day_signins{job=\"kanidm-activity\",month=\"$period\"} or identity_sso_week_day_signins{job=\"kanidm-activity\",week=\"$period\"}) and on(instance) (time() - identity_sso_export_timestamp_seconds{job=\"kanidm-observer\"} < 90) and on(instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-activity\"} == 1) and on(instance) (time() - timestamp(up{job=\"kanidm-activity\"}) < 150)",
+                        "format": "time_series",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "day"
+                      ],
+                      "mode": "columns"
+                    }
+                  }
+                },
+                {
+                  "group": "merge",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "group": "organize",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {
+                        "identity_sso_day_signins": true,
+                        "identity_sso_week_day_signins": true
+                      },
+                      "renameByName": {
+                        "identity_sso_day_signins": "Average logins per day",
+                        "identity_sso_week_day_signins": "Average logins per day"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Average over tracked days including today",
+          "id": 2,
+          "links": [],
+          "title": "",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 1,
+                  "displayName": "Average logins per day",
+                  "min": 0,
+                  "noValue": "No data",
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "mean"
+                  ],
+                  "fields": "/^Average logins per day$/",
+                  "values": false
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-3": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_sso_${view}_signins{job=\"kanidm-activity\",${view}=\"$period\"} and on(instance) (time() - identity_sso_export_timestamp_seconds{job=\"kanidm-observer\"} < 90) and on(instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-activity\"} == 1) and on(instance) (time() - timestamp(up{job=\"kanidm-activity\"}) < 150)",
+                        "format": "time_series",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Recorded app logins during ${period:text}",
+          "id": 3,
+          "links": [],
+          "title": "",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "displayName": "Logins",
+                  "min": 0,
+                  "noValue": "No data",
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-4": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "-- Dashboard --"
+                      },
+                      "group": "datasource",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "panelId": 5,
+                        "withTransforms": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {
+                "hideTimeOverride": true,
+                "timeFrom": "${report_range:text}",
+                "timeShift": "${report_range}"
+              },
+              "transformations": [
+                {
+                  "group": "filterByRefId",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "include": "B"
+                    }
+                  }
+                },
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "day",
+                        "app",
+                        "app_id"
+                      ],
+                      "mode": "columns"
+                    }
+                  }
+                },
+                {
+                  "group": "merge",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "group": "organize",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {
+                        "app": true,
+                        "app_id": true,
+                        "day": true,
+                        "identity_sso_app_day_signins": true
+                      },
+                      "indexByName": {
+                        "app": 1,
+                        "app_id": 2,
+                        "day": 0,
+                        "identity_sso_app_day_signins": 3
+                      },
+                      "renameByName": {
+                        "day": "Day",
+                        "identity_sso_app_day_signins": "Logins"
+                      }
+                    }
+                  }
+                },
+                {
+                  "group": "convertFieldType",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "conversions": [
+                        {
+                          "dateFormat": "YYYY-MM-DD",
+                          "destinationType": "time",
+                          "targetField": "Day",
+                          "timezone": "America/Los_Angeles"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "group": "sortBy",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "sort": [
+                        {
+                          "desc": false,
+                          "field": "Day"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "group": "prepareTimeSeries",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "format": "multi"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Daily app logins during ${period:text}\nGaps were not tracked",
+          "id": 4,
+          "links": [],
+          "title": "Logins by app",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic-by-name"
+                  },
+                  "custom": {
+                    "axisCenteredZero": false,
+                    "axisLabel": "Logins",
+                    "axisPlacement": "auto",
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": 90000000,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "always",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    }
+                  },
+                  "decimals": 0,
+                  "displayName": "${__field.labels.app}",
+                  "min": 0,
+                  "noValue": "No data",
+                  "unit": "locale"
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "timezone": [
+                  "America/Los_Angeles"
+                ],
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "desc"
+                }
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-5": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_sso_app_${view}_signins{job=\"kanidm-activity\",${view}=\"$period\"} and on(instance) (time() - identity_sso_export_timestamp_seconds{job=\"kanidm-observer\"} < 90) and on(instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-activity\"} == 1) and on(instance) (time() - timestamp(up{job=\"kanidm-activity\"}) < 150)",
+                        "format": "time_series",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_sso_app_day_signins{job=\"kanidm-activity\",${view}=\"$period\"} and on(instance) (time() - identity_sso_export_timestamp_seconds{job=\"kanidm-observer\"} < 90) and on(instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-activity\"} == 1) and on(instance) (time() - timestamp(up{job=\"kanidm-activity\"}) < 150)",
+                        "format": "time_series",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "B"
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_sso_app_${view}_users{job=\"kanidm-activity\",${view}=\"$period\"} and on(instance) (time() - identity_sso_export_timestamp_seconds{job=\"kanidm-observer\"} < 90) and on(instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-activity\"} == 1) and on(instance) (time() - timestamp(up{job=\"kanidm-activity\"}) < 150)",
+                        "format": "time_series",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "C"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "filterByRefId",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "include": "A|C"
+                    }
+                  }
+                },
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "app",
+                        "app_id"
+                      ],
+                      "mode": "columns"
+                    }
+                  }
+                },
+                {
+                  "group": "merge",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "group": "organize",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {
+                        "app": true,
+                        "app_id": true,
+                        "identity_sso_app_month_signins": true,
+                        "identity_sso_app_month_users": true,
+                        "identity_sso_app_week_signins": true,
+                        "identity_sso_app_week_users": true
+                      },
+                      "indexByName": {
+                        "app": 0,
+                        "app_id": 1,
+                        "identity_sso_app_month_signins": 3,
+                        "identity_sso_app_month_users": 2,
+                        "identity_sso_app_week_signins": 3,
+                        "identity_sso_app_week_users": 2
+                      },
+                      "renameByName": {
+                        "app": "App",
+                        "app_id": "App ID",
+                        "identity_sso_app_month_signins": "Logins",
+                        "identity_sso_app_month_users": "People",
+                        "identity_sso_app_week_signins": "Logins",
+                        "identity_sso_app_week_users": "People"
+                      }
+                    }
+                  }
+                },
+                {
+                  "group": "sortBy",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "sort": [
+                        {
+                          "desc": true,
+                          "field": "Logins"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "group": "filterFieldsByName",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "include": {
+                        "names": [
+                          "App",
+                          "People",
+                          "Logins"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "People and logins per app during ${period:text}",
+          "id": 5,
+          "links": [],
+          "title": "App totals",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "minWidth": 50,
+                    "filterable": false,
+                    "inspect": true,
+                    "wrapHeaderText": true
+                  },
+                  "min": 0,
+                  "decimals": 0,
+                  "unit": "short",
+                  "noValue": "No data"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "App"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "string"
+                      },
+                      {
+                        "id": "custom.minWidth",
+                        "value": 120
+                      },
+                      {
+                        "id": "custom.filterable",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "People"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "mode": "fixed",
+                          "fixedColor": "blue"
+                        }
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 90
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "gauge",
+                          "mode": "basic",
+                          "valueDisplayMode": "text"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Logins"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "mode": "fixed",
+                          "fixedColor": "green"
+                        }
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 90
+                      },
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "gauge",
+                          "mode": "basic",
+                          "valueDisplayMode": "text"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "showHeader": true,
+                "cellHeight": "sm",
+                "enablePagination": false,
+                "sortBy": [
+                  {
+                    "displayName": "Logins",
+                    "desc": true
+                  }
+                ]
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-7": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "((identity_sso_weekday_hour_signins{job=\"kanidm-activity\",month=\"$period\"} or identity_sso_week_weekday_hour_signins{job=\"kanidm-activity\",week=\"$period\"}) + 0 or on(weekday,hour,job,instance) (identity_sso_period_weekday_hour_grid{job=\"kanidm-activity\"} + 0)) and on(job,instance) identity_sso_period_start_timestamp_seconds{job=\"kanidm-activity\",kind=\"$view\",period=\"$period\"} and on(instance) (time() - identity_sso_export_timestamp_seconds{job=\"kanidm-observer\"} < 90) and on(instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-activity\"} == 1) and on(instance) (time() - timestamp(up{job=\"kanidm-activity\"}) < 150)",
+                        "format": "time_series",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "labelsToFields",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "keepLabels": [
+                        "weekday",
+                        "hour"
+                      ],
+                      "mode": "columns"
+                    }
+                  }
+                },
+                {
+                  "group": "merge",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {}
+                  }
+                },
+                {
+                  "group": "sortBy",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "sort": [
+                        {
+                          "desc": false,
+                          "field": "hour"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "group": "groupingToMatrix",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "columnField": "weekday",
+                      "emptyValue": "null",
+                      "rowField": "hour",
+                      "valueField": "Value"
+                    }
+                  }
+                },
+                {
+                  "group": "organize",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {},
+                      "includeByName": {
+                        "0": true,
+                        "1": true,
+                        "2": true,
+                        "3": true,
+                        "4": true,
+                        "5": true,
+                        "6": true,
+                        "hour\\weekday": true
+                      },
+                      "indexByName": {
+                        "0": 1,
+                        "1": 2,
+                        "2": 3,
+                        "3": 4,
+                        "4": 5,
+                        "5": 6,
+                        "6": 7,
+                        "hour\\weekday": 0
+                      },
+                      "renameByName": {
+                        "0": "Mon",
+                        "1": "Tue",
+                        "2": "Wed",
+                        "3": "Thu",
+                        "4": "Fri",
+                        "5": "Sat",
+                        "6": "Sun",
+                        "hour\\weekday": "Hour"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Logins by weekday and hour in Pacific time\nBlank cells were not tracked",
+          "id": 7,
+          "links": [],
+          "title": "Busiest hours",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "continuous-blues"
+                  },
+                  "custom": {
+                    "align": "center",
+                    "cellOptions": {
+                      "mode": "basic",
+                      "type": "color-background"
+                    },
+                    "filterable": false,
+                    "minWidth": 64,
+                    "inspect": true
+                  },
+                  "decimals": 0,
+                  "fieldMinMax": false,
+                  "mappings": [
+                    {
+                      "options": {
+                        "match": "null+nan",
+                        "result": {
+                          "color": "transparent",
+                          "text": " "
+                        }
+                      },
+                      "type": "special"
+                    }
+                  ],
+                  "min": 0,
+                  "noValue": " ",
+                  "unit": "short"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Hour"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.cellOptions",
+                        "value": {
+                          "type": "auto"
+                        }
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 88
+                      },
+                      {
+                        "id": "unit",
+                        "value": "string"
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "options": {
+                              "10": {
+                                "text": "10 AM"
+                              },
+                              "11": {
+                                "text": "11 AM"
+                              },
+                              "12": {
+                                "text": "12 PM"
+                              },
+                              "13": {
+                                "text": "1 PM"
+                              },
+                              "14": {
+                                "text": "2 PM"
+                              },
+                              "15": {
+                                "text": "3 PM"
+                              },
+                              "16": {
+                                "text": "4 PM"
+                              },
+                              "17": {
+                                "text": "5 PM"
+                              },
+                              "18": {
+                                "text": "6 PM"
+                              },
+                              "19": {
+                                "text": "7 PM"
+                              },
+                              "20": {
+                                "text": "8 PM"
+                              },
+                              "21": {
+                                "text": "9 PM"
+                              },
+                              "22": {
+                                "text": "10 PM"
+                              },
+                              "23": {
+                                "text": "11 PM"
+                              },
+                              "00": {
+                                "text": "12 AM"
+                              },
+                              "01": {
+                                "text": "1 AM"
+                              },
+                              "02": {
+                                "text": "2 AM"
+                              },
+                              "03": {
+                                "text": "3 AM"
+                              },
+                              "04": {
+                                "text": "4 AM"
+                              },
+                              "05": {
+                                "text": "5 AM"
+                              },
+                              "06": {
+                                "text": "6 AM"
+                              },
+                              "07": {
+                                "text": "7 AM"
+                              },
+                              "08": {
+                                "text": "8 AM"
+                              },
+                              "09": {
+                                "text": "9 AM"
+                              }
+                            },
+                            "type": "value"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "cellHeight": "sm",
+                "enablePagination": false,
+                "footer": {
+                  "show": false
+                },
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": false,
+                    "displayName": "Hour"
+                  }
+                ]
+              }
+            },
+            "version": ""
+          }
+        }
+      }
+    },
+    "layout": {
+      "kind": "RowsLayout",
+      "spec": {
+        "rows": [
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-1"
+                        },
+                        "height": 5,
+                        "width": 8,
+                        "x": 0,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-2"
+                        },
+                        "height": 5,
+                        "width": 8,
+                        "x": 8,
+                        "y": 0
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-3"
+                        },
+                        "height": 5,
+                        "width": 8,
+                        "x": 16,
+                        "y": 0
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 1,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 560,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 400,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-4"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 1,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 560,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 320,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-5"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 1,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 560,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 960,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-7"
+                        },
+                        "conditionalRendering": {
+                          "kind": "ConditionalRenderingGroup",
+                          "spec": {
+                            "visibility": "show",
+                            "condition": "and",
+                            "items": [
+                              {
+                                "kind": "ConditionalRenderingData",
+                                "spec": {
+                                  "value": true
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "links": [
+      {
+        "asDropdown": false,
+        "icon": "",
+        "includeVars": false,
+        "keepTime": false,
+        "tags": [],
+        "targetBlank": false,
+        "title": "Kanidm Health",
+        "tooltip": "",
+        "type": "link",
+        "url": "/d/kanidm-health"
+      },
+      {
+        "asDropdown": false,
+        "icon": "",
+        "includeVars": false,
+        "keepTime": false,
+        "tags": [],
+        "targetBlank": false,
+        "title": "Member Demographics",
+        "tooltip": "",
+        "type": "link",
+        "url": "/d/member-demographics"
+      },
+      {
+        "asDropdown": false,
+        "icon": "",
+        "includeVars": false,
+        "keepTime": false,
+        "tags": [],
+        "targetBlank": false,
+        "title": "SSO Activity",
+        "tooltip": "",
+        "type": "link",
+        "url": "/d/auth-activity"
+      }
+    ],
+    "liveNow": false,
+    "preload": false,
+    "tags": [
+      "kanidm",
+      "usage"
+    ],
+    "timeSettings": {
+      "autoRefresh": "1m",
+      "autoRefreshIntervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "fiscalYearStartMonth": 0,
+      "from": "now-24h",
+      "hideTimepicker": true,
+      "timezone": "America/Los_Angeles",
+      "to": "now",
+      "weekStart": "monday"
+    },
+    "title": "SSO Activity",
+    "variables": [
+      {
+        "kind": "CustomVariable",
+        "spec": {
+          "allowCustomValue": false,
+          "current": {
+            "text": "Monthly",
+            "value": "month"
+          },
+          "hide": "dontHide",
+          "includeAll": false,
+          "label": "View",
+          "multi": false,
+          "name": "view",
+          "options": [
+            {
+              "selected": true,
+              "text": "Monthly",
+              "value": "month"
+            },
+            {
+              "selected": false,
+              "text": "Weekly",
+              "value": "week"
+            }
+          ],
+          "query": "Monthly : month,Weekly : week",
+          "skipUrlSync": false
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "allowCustomValue": false,
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "definition": "query_result(sort_desc(identity_sso_period_start_timestamp_seconds{job=\"kanidm-activity\",kind=\"$view\"} and on(instance) (time() - identity_sso_export_timestamp_seconds{job=\"kanidm-observer\"} < 90) and on(instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-activity\"} == 1) and on(instance) (time() - timestamp(up{job=\"kanidm-activity\"}) < 150)))",
+          "hide": "dontHide",
+          "includeAll": false,
+          "label": "Period",
+          "multi": false,
+          "name": "period",
+          "options": [],
+          "query": {
+            "datasource": {
+              "name": "identity-prometheus"
+            },
+            "group": "prometheus",
+            "kind": "DataQuery",
+            "spec": {
+              "__legacyStringValue": "query_result(sort_desc(identity_sso_period_start_timestamp_seconds{job=\"kanidm-activity\",kind=\"$view\"} and on(instance) (time() - identity_sso_export_timestamp_seconds{job=\"kanidm-observer\"} < 90) and on(instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-activity\"} == 1) and on(instance) (time() - timestamp(up{job=\"kanidm-activity\"}) < 150)))"
+            },
+            "version": "v0"
+          },
+          "refresh": "onTimeRangeChanged",
+          "regex": "/period_name=\"(?<text>[^\"]+)\"|period=\"(?<value>[^\"]+)\"/g",
+          "skipUrlSync": false,
+          "sort": "disabled"
+        }
+      },
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "allowCustomValue": false,
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "definition": "query_result(identity_sso_period_start_timestamp_seconds{job=\"kanidm-activity\",kind=\"$view\",period=\"$period\"} and on(instance) (time() - identity_sso_export_timestamp_seconds{job=\"kanidm-observer\"} < 90) and on(instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-activity\"} == 1) and on(instance) (time() - timestamp(up{job=\"kanidm-activity\"}) < 150))",
+          "hide": "hideVariable",
+          "includeAll": false,
+          "label": "Range",
+          "multi": false,
+          "name": "report_range",
+          "options": [],
+          "query": {
+            "datasource": {
+              "name": "identity-prometheus"
+            },
+            "group": "prometheus",
+            "kind": "DataQuery",
+            "spec": {
+              "__legacyStringValue": "query_result(identity_sso_period_start_timestamp_seconds{job=\"kanidm-activity\",kind=\"$view\",period=\"$period\"} and on(instance) (time() - identity_sso_export_timestamp_seconds{job=\"kanidm-observer\"} < 90) and on(instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-observer\"} == 1) and on(instance) (up{job=\"kanidm-activity\"} == 1) and on(instance) (time() - timestamp(up{job=\"kanidm-activity\"}) < 150))"
+            },
+            "version": "v0"
+          },
+          "refresh": "onTimeRangeChanged",
+          "regex": "/time_from=\"(?<text>[^\"]+)\"|time_shift=\"(?<value>[^\"]+)\"/g",
+          "skipUrlSync": true,
+          "sort": "disabled"
+        }
+      }
+    ]
+  }
+}

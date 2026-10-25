@@ -1,0 +1,22 @@
+[Unit]
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target identity-usage.service identity-tunnel.service
+
+StartLimitIntervalSec=600
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/opt/auth
+
+ExecStart=/usr/bin/python3 /opt/auth/deploy/manage.py up --env /etc/identity/deployment.env
+ExecStop=/usr/bin/docker compose --env-file /etc/identity/deployment.env --file /opt/auth/deploy/oci/compose.yaml stop
+
+TimeoutStartSec=120
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target

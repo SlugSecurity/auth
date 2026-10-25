@@ -1,0 +1,13 @@
+{
+  "version": "1.11.2",
+  "domain": "auth.slugsec.club",
+  "origin": "https://auth.slugsec.club",
+  "portal_origin": "https://my.slugsec.club",
+
+  "state_dir": "/state",
+  "observe_dir": "/observe",
+
+  "operator_credentials": "/run/identity/operator-credentials.json",
+  "trusted_proxy": "",
+  "operator_session": "/operator-session"
+}

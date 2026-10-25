@@ -1,0 +1,29 @@
+metrics: 127.0.0.1:0
+loglevel: info
+
+ingress:
+  - hostname: auth.slugsec.club
+    path: ^/v1/identity(?:/|$)
+    service: http_status:404
+
+  - hostname: auth.slugsec.club
+    service: https://127.0.0.1:18543
+    originRequest:
+      originServerName: auth.slugsec.club
+      httpHostHeader: auth.slugsec.club
+      caPool: __BACKEND_CA__
+      noTLSVerify: false
+
+  - hostname: my.slugsec.club
+    path: ^/(?:operations|ready)(?:/|$)
+    service: http_status:404
+
+  - hostname: my.slugsec.club
+    service: https://127.0.0.1:18643
+    originRequest:
+      originServerName: my.slugsec.club
+      httpHostHeader: my.slugsec.club
+      caPool: __BACKEND_CA__
+      noTLSVerify: false
+
+  - service: http_status:404

@@ -1,0 +1,379 @@
+name: identity
+
+x-runtime: &runtime
+  image: ${IDENTITY_PORTAL_IMAGE:?Set an immutable production portal image ID}
+  user: "10002:10002"
+
+  restart: unless-stopped
+  stop_grace_period: 30s
+
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=32m,mode=1777
+
+  environment:
+    IDENTITY_RUNTIME_CONFIG: /run/identity/runtime.json
+
+  volumes:
+    - type: bind
+      source: ${IDENTITY_PORTAL_STATE_DIR:?Set private portal state}
+      target: /state
+      bind:
+        create_host_path: false
+
+    - type: bind
+      source: ${IDENTITY_CONFIG_DIR:?Set root-owned deployment config}/runtime.json
+      target: /run/identity/runtime.json
+      read_only: true
+      bind:
+        create_host_path: false
+
+    - type: bind
+      source: ${IDENTITY_PKI_DIR:?Set backend PKI}/ca.pem
+      target: /observe/ca.pem
+      read_only: true
+      bind:
+        create_host_path: false
+
+    - type: bind
+      source: ${IDENTITY_POSIX_STATUS_DIR:?Set sanitized POSIX export}
+      target: /observe/posix
+      read_only: true
+      bind:
+        create_host_path: false
+
+    - type: bind
+      source: ${IDENTITY_BACKUP_STATUS_DIR:?Set sanitized backup export}
+      target: /observe/backup
+      read_only: true
+      bind:
+        create_host_path: false
+
+  networks:
+    - identity
+
+  logging: &logging
+    driver: local
+    options:
+      max-size: 10m
+      max-file: '3'
+
+services:
+  kanidm:
+    image: ${IDENTITY_KANIDM_IMAGE:?Set an immutable patched production image ID}
+    user: "10001:10001"
+
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: '0'
+    tmpfs:
+      - /run/kanidm:rw,noexec,nosuid,size=1m,uid=10001,gid=10001,mode=0700
+
+    volumes:
+      - type: bind
+        source: ${IDENTITY_KANIDM_DATA_DIR:?Set private native data}
+        target: /data
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_CONFIG_DIR:?Set root-owned config}/server.toml
+        target: /data/server.toml
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_PKI_DIR:?Set backend PKI}/kanidm
+        target: /data/tls
+        read_only: true
+        bind:
+          create_host_path: false
+
+    ports:
+      - 127.0.0.1:18543:443
+    expose:
+      - '443'
+    networks:
+      identity:
+        ipv4_address: 172.29.75.3
+        aliases:
+          - auth.slugsec.club
+
+    logging:
+      driver: json-file
+      options:
+        mode: blocking
+        max-size: 10m
+        max-file: "5"
+
+  portal:
+    <<: *runtime
+    command:
+      - web
+
+    environment:
+      IDENTITY_RUNTIME_CONFIG: /run/identity/runtime.json
+      IDENTITY_PROCESS_ROLE: portal
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: '0'
+
+    volumes:
+      - type: bind
+        source: ${IDENTITY_PORTAL_STATE_DIR:?Set private portal state}
+        target: /state
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_CONFIG_DIR:?Set root-owned deployment config}/runtime.json
+        target: /run/identity/runtime.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_PKI_DIR:?Set backend PKI}/ca.pem
+        target: /observe/ca.pem
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_POSIX_STATUS_DIR:?Set sanitized POSIX export}
+        target: /observe/posix
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_BACKUP_STATUS_DIR:?Set sanitized backup export}
+        target: /observe/backup
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_PKI_DIR:?Set backend PKI}/portal
+        target: /run/tls/portal
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_GOOGLE_CLIENT:?Set private Google web client JSON}
+        target: /state/enrollment/google-client.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+    ports:
+      - 127.0.0.1:18643:443
+    expose:
+      - '443'
+      - '9443'
+    networks:
+      identity:
+        ipv4_address: 172.29.75.4
+        aliases:
+          - my.slugsec.club
+
+    depends_on:
+      - kanidm
+      - posix
+
+  posix:
+    <<: *runtime
+    user: "10004:10004"
+    group_add:
+      - '10002'
+    command:
+      - posix
+
+    environment:
+      IDENTITY_RUNTIME_CONFIG: /run/identity/runtime.json
+      IDENTITY_PROCESS_ROLE: posix
+
+    volumes:
+      - type: bind
+        source: ${IDENTITY_CONFIG_DIR:?Set root-owned deployment config}/runtime.json
+        target: /run/identity/runtime.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_PKI_DIR:?Set backend PKI}/ca.pem
+        target: /observe/ca.pem
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_POSIX_STATE_DIR:?Set private POSIX worker state}
+        target: /state/posix-defaults
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_POSIX_STATUS_DIR:?Set sanitized POSIX export}
+        target: /observe/posix
+        bind:
+          create_host_path: false
+
+    depends_on:
+      - kanidm
+
+  access:
+    <<: *runtime
+    command:
+      - access
+
+    depends_on:
+      - kanidm
+
+  observer:
+    <<: *runtime
+    command:
+      - observer
+    group_add:
+      - '10005'
+
+    environment: {}
+
+    ports:
+      - 127.0.0.1:19101:19101
+
+    volumes:
+      - type: bind
+        source: ${IDENTITY_PORTAL_STATE_DIR:?Set private portal state}/metrics/observer
+        target: /run/observer
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_PKI_DIR:?Set backend PKI}/ca.pem
+        target: /observe/ca.pem
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_METRICS_DASHBOARD_DIR:?Set aggregate dashboard export}
+        target: /dashboards
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_MEMBER_DASHBOARD_DIR:?Set private member dashboard export}
+        target: /member-dashboards
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_USAGE_EXPORT_DIR:?Set aggregate SSO export}
+        target: /observe/usage
+        read_only: true
+        bind:
+          create_host_path: false
+
+    depends_on:
+      - kanidm
+      - portal
+
+  operator:
+    <<: *runtime
+    user: "0:0"
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+
+    profiles:
+      - operator
+
+    restart: "no"
+    command:
+      - --help
+
+    volumes:
+      - type: bind
+        source: ${IDENTITY_PORTAL_STATE_DIR:?Set private portal state}
+        target: /state
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_CONFIG_DIR:?Set root-owned deployment config}/runtime.json
+        target: /run/identity/runtime.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_PKI_DIR:?Set backend PKI}/ca.pem
+        target: /observe/ca.pem
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_POSIX_STATUS_DIR:?Set sanitized POSIX export}
+        target: /observe/posix
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_BACKUP_STATUS_DIR:?Set sanitized backup export}
+        target: /observe/backup
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_POSIX_STATE_DIR:?Set private POSIX worker state}
+        target: /state/posix-defaults
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_OPERATOR_SESSION_DIR:?Set private native operator cache}
+        target: /operator-session
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_OPERATOR_CREDENTIALS:?Set bootstrap operator credentials}
+        target: /run/identity/operator-credentials.json
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${IDENTITY_METRICS_DASHBOARD_DIR:?Set aggregate dashboard export}
+        target: /state/metrics/dashboards
+        read_only: true
+        bind:
+          create_host_path: false
+
+networks:
+  identity:
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: 172.29.75.0/28
+          gateway: 172.29.75.1
+          ip_range: 172.29.75.8/29

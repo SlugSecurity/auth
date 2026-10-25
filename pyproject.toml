@@ -1,0 +1,79 @@
+[tool.ruff]
+target-version = "py314"
+src = ["service", "deploy"]
+
+[tool.ruff.per-file-target-version]
+"deploy/manage.py" = "py310"
+"service/usage.py" = "py310"
+"deploy/certificates.py" = "py310"
+"deploy/runtime.py" = "py310"
+"service/contracts.py" = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM", "C4", "PIE", "RUF"]
+
+[tool.vulture]
+min_confidence = 100
+sort_by_size = true
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+mypy_path = ["service", "deploy", "typings"]
+files = [
+  "deploy/bootstrap.py",
+  "deploy/certificates.py",
+  "deploy/launcher.py",
+  "deploy/manage.py",
+  "deploy/runtime.py",
+  "service/access.py",
+  "service/access_portal.py",
+  "service/access_runtime.py",
+  "service/backup.py",
+  "service/branding_config.py",
+  "service/enrollment.py",
+  "service/enrollment_google.py",
+  "service/enrollment_kanidm.py",
+  "service/membership.py",
+  "service/membership_portal.py",
+  "service/observability.py",
+  "service/usage.py",
+  "service/operations.py",
+  "service/posix_defaults.py",
+  "service/contracts.py",
+  "service/directory.py",
+  "service/runtime_view.py",
+  "typings",
+]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.14"
+pythonPlatform = "Linux"
+extraPaths = ["service", "deploy"]
+stubPath = "typings"
+include = [
+  "deploy/bootstrap.py",
+  "deploy/certificates.py",
+  "deploy/launcher.py",
+  "deploy/manage.py",
+  "deploy/runtime.py",
+  "service/access.py",
+  "service/access_portal.py",
+  "service/access_runtime.py",
+  "service/backup.py",
+  "service/branding_config.py",
+  "service/enrollment.py",
+  "service/enrollment_google.py",
+  "service/enrollment_kanidm.py",
+  "service/membership.py",
+  "service/membership_portal.py",
+  "service/observability.py",
+  "service/usage.py",
+  "service/operations.py",
+  "service/posix_defaults.py",
+  "service/contracts.py",
+  "service/directory.py",
+  "service/runtime_view.py",
+  "typings",
+]

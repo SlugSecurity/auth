@@ -1,0 +1,6 @@
+[Service]
+Type=oneshot
+
+TimeoutStartSec=60
+
+ExecStart=/usr/bin/python3 /opt/auth/deploy/manage.py backup-status --env /etc/identity/deployment.env

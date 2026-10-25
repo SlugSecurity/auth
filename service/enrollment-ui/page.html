@@ -1,0 +1,1119 @@
+<!doctype html>
+{% set account_titles = {
+  'access': 'Groups',
+  'access_error': 'Groups',
+  'membership': 'Registration',
+  'membership_error': 'Registration'
+} %}
+{% set account_page = page in account_titles %}
+{% set registration_url = '/membership' %}
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="referrer" content="same-origin">
+
+    <title>{% if account_page %}{{ account_titles[page] }}{% elif page == 'error' %}Account error{% elif page == 'recover' or recovery %}Recover your account{% elif page == 'setup' %}Set up your account{% else %}Create an account{% endif %} · {{ auth_title }}</title>
+
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="/assets/bootstrap.min.css">
+    <link rel="stylesheet" href="/assets/style.css">
+
+    {% if account_page %}
+      <script src="/assets/bootstrap.bundle.min.js" defer></script>
+    {% endif %}
+    <script src="/assets/flow.js" defer></script>
+  </head>
+
+  {% set native_ui = auth_login_url | replace('/ui/login', '/ui') %}
+
+  <body
+    class="{{ 'identity-account' if account_page else 'identity-auth' }}"
+    data-auth-login="{{ auth_login_url }}"
+  >
+    {% set applicant = application or {} %}
+    {% set profile = identity or {} %}
+    {% set field_errors = field_errors or {} %}
+    {% set form_values = form_values or {} %}
+
+    {% macro notices(show_errors=true) %}
+      {% if errors and show_errors %}
+        <div class="{{ 'text-danger mb-3' if account_page else 'alert alert-danger' }}" role="alert">
+          <p>{{ (errors | join(' ')).removesuffix('.') }}</p>
+        </div>
+      {% endif %}
+
+      {% if message %}
+        <p class="{{ 'account-feedback' if account_page else 'alert alert-info' }}" role="status">{{ message.removesuffix('.') }}</p>
+      {% endif %}
+    {% endmacro %}
+
+    {% macro registration_error(key) %}
+      {% if field_errors.get(key) %}
+        <p id="registration-{{ key }}-error" class="field-error">{{ field_errors[key].removesuffix('.') }}</p>
+      {% endif %}
+    {% endmacro %}
+
+    {% macro registration_input(
+      key,
+      label,
+      kind='text',
+      maximum=120,
+      autocomplete='off',
+      required=false,
+      conditional=false
+    ) %}
+      <div class="field{% if field_errors.get(key) %} field-invalid{% endif %}">
+        <label for="registration-{{ key }}">{{ label }}{% if required or conditional %}<span{% if conditional %} data-other-required{% if not required %} hidden{% endif %}{% endif %}> <span class="field-required" title="Required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></span>{% endif %}</label>
+        <input
+          class="form-control"
+          id="registration-{{ key }}"
+          name="{{ key }}"
+          type="{{ kind }}"
+          maxlength="{{ maximum }}"
+          autocomplete="{{ autocomplete }}"
+          value="{{ form_values.get(key) or '' }}"
+          {% if required %}
+            required
+          {% endif %}
+          {% if field_errors.get(key) %}
+            aria-invalid="true"
+            aria-describedby="registration-{{ key }}-error"
+          {% endif %}
+        >
+        {{ registration_error(key) }}
+      </div>
+    {% endmacro %}
+
+    {% macro registration_followup(choice, value, key, label, maximum=120) %}
+      {% set selected = form_values.get(choice) %}
+
+      <div class="registration-other" data-followup-for="{{ choice }}" data-followup-value="{{ value }}">
+        {{ registration_input(key, label, maximum=maximum, required=(selected == value or (selected is sequence and selected is not string and value in selected)), conditional=true) }}
+      </div>
+    {% endmacro %}
+
+    {% macro registration_other(choice, key, label, maximum=120) %}
+      {{ registration_followup(choice, 'other', key, label, maximum) }}
+    {% endmacro %}
+
+    {% macro registration_select(key, label, prompt) %}
+      <div class="field{% if field_errors.get(key) %} field-invalid{% endif %}">
+        <label for="registration-{{ key }}">{{ label }} <span class="field-required" title="Required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+        <select
+          class="form-select"
+          id="registration-{{ key }}"
+          name="{{ key }}"
+          {% if key == 'school_level' %}
+            data-school-level
+          {% endif %}
+          required
+          {% if field_errors.get(key) %}
+            aria-invalid="true"
+            aria-describedby="registration-{{ key }}-error"
+          {% endif %}
+        >
+          <option value="">{{ prompt }}</option>
+
+          {% for code, text in membership_options[key] %}
+            <option
+              value="{{ code }}"
+              {% if key == 'school_level' and code in membership_student_levels %}
+                data-student
+              {% endif %}
+              {% if form_values.get(key) == code %}
+                selected
+              {% endif %}
+            >{{ text }}</option>
+          {% endfor %}
+        </select>
+        {{ registration_error(key) }}
+      </div>
+    {% endmacro %}
+
+    {% macro registration_choices(key, label, multiple=false, required=false) %}
+      {% set study_picker = key == 'studies' %}
+      {% set choice_required = form_values.get('school_level') in membership_student_levels if study_picker else required %}
+
+      <fieldset
+        {% if study_picker %}
+          id="registration-studies"
+          data-study-picker
+        {% elif required %}
+          data-required-choices
+        {% endif %}
+        class="registration-choice-field{% if field_errors.get(key) %} field-invalid{% endif %}"
+        {% if field_errors.get(key) %}
+          aria-describedby="registration-{{ key }}-error"
+        {% endif %}
+      >
+        <legend>{{ label }}{% if study_picker or choice_required %}<span
+          {% if study_picker %}
+            data-study-required
+            {% if not choice_required %}
+              hidden
+            {% endif %}
+          {% endif %}
+        > <span class="field-required" title="Required" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></span>{% endif %}</legend>
+
+        {% if study_picker %}
+          <div class="study-combobox" data-study-combobox>
+            <label class="visually-hidden" for="registration-study-search">Search fields of study</label>
+            <input
+              class="form-control"
+              id="registration-study-search"
+              type="text"
+              data-study-search
+              hidden
+              placeholder="Search fields of study"
+              autocomplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-controls="registration-study-results"
+              {% if field_errors.get(key) %}
+                aria-invalid="true"
+                aria-describedby="registration-{{ key }}-error"
+              {% endif %}
+            >
+            <div class="study-dropdown" data-study-dropdown hidden>
+              <ul
+                id="registration-study-results"
+                data-study-results
+                role="listbox"
+                aria-label="Matching fields of study"
+                hidden
+              >
+              </ul>
+              <p class="help" data-study-empty role="status" aria-live="polite" hidden>No matching fields of study</p>
+            </div>
+          </div>
+          <ul data-study-selected aria-label="Selected fields of study" hidden>
+          </ul>
+          <p class="visually-hidden" data-study-status role="status" aria-live="polite"></p>
+        {% endif %}
+        <div
+          {% if study_picker %}
+            id="registration-study-options"
+            data-study-native
+          {% endif %}
+          class="registration-options{% if multiple %} registration-options-columns{% endif %}"
+        >
+          {% for code, text in membership_options.get(key, ()) %}
+            <label
+              class="registration-choice"
+              for="registration-{{ key }}-{{ code }}"
+              {% if study_picker %}
+                data-study-option
+              {% endif %}
+            >
+              <input
+                class="form-check-input"
+                id="registration-{{ key }}-{{ code }}"
+                name="{{ key }}"
+                type="{{ 'checkbox' if multiple else 'radio' }}"
+                value="{{ code }}"
+                {% if (multiple and code in (form_values.get(key) or [])) or (not multiple and form_values.get(key) == code) %}
+                  checked
+                {% endif %}
+              >
+              <span{% if study_picker %} data-study-name{% endif %}>{{ text }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        {{ registration_error(key) }}
+      </fieldset>
+    {% endmacro %}
+
+    {% macro registration_value(key, answers) %}
+      {% set value = answers.get(key) %}
+      {% set labels = dict(membership_options.get(key, ())) %}
+      {% set companion = {'gender': 'gender_other', 'ethnicity': 'ethnicity_other', 'school_level': 'school_level_other', 'shirt_size': 'shirt_size_other', 'heard_about': 'heard_about_other'}.get(key) %}
+      {% if not value %}Not provided{% elif value is sequence and value is not string %}
+        {% for code in value %}{{ labels.get(code, code) }}{% if code == 'other' and companion %}: {{ answers.get(companion, '') }}{% endif %}{{ ', ' if not loop.last }}{% endfor %}
+      {% else %}{{ labels.get(value, value) }}{% if value == 'other' and companion %}: {{ answers.get(companion, '') }}{% endif %}{% endif %}
+    {% endmacro %}
+
+    {% macro registration_response(key, label, answers) %}
+      <div>
+        <dt>{{ label }}</dt>
+        <dd>{{ registration_value(key, answers) }}</dd>
+      </div>
+    {% endmacro %}
+
+    {% macro registration_studies(answers) %}
+      <div>
+        <dt>Field of study</dt>
+        <dd>{{ answers | study_names | join(', ') or 'Not provided' }}</dd>
+      </div>
+    {% endmacro %}
+
+    {% macro registration_responses(record) %}
+      <section class="registration-section" id="registration-contact">
+        <h2 class="visually-hidden">About you</h2>
+        <dl class="registration-responses">
+          {{ registration_response('preferred_name', 'Preferred name', record.responses) }}
+          {{ registration_response('school_level', 'Level in school', record.responses) }}
+          {{ registration_studies(record.responses) }}
+        </dl>
+      </section>
+
+      <section class="registration-section" id="registration-club">
+        <h2 class="visually-hidden">SlugSec information</h2>
+        <dl class="registration-responses">
+          {{ registration_response('shirt_size', 'T-shirt size', record.responses) }}
+          {{ registration_response('heard_about', 'How you heard about SlugSec', record.responses) }}
+
+          {% if record.responses.get('social_media_source') %}
+            {{ registration_response('social_media_source', 'Social media', record.responses) }}
+          {% endif %}
+
+          {% if record.responses.get('discord_source') %}
+            {{ registration_response('discord_source', 'Discord', record.responses) }}
+          {% endif %}
+
+          {% if record.responses.get('faculty_name') %}
+            {{ registration_response('faculty_name', 'Professor or faculty member', record.responses) }}
+          {% endif %}
+        </dl>
+      </section>
+
+      <section class="registration-section registration-demographics" id="registration-demographics">
+        <h2>Demographics</h2>
+        <dl class="registration-responses">
+          {{ registration_response('gender', 'Gender identity', record.responses) }}
+          {{ registration_response('ethnicity', 'Ethnicity', record.responses) }}
+          {{ registration_response('lgbtq', 'LGBT+ community', record.responses) }}
+          {{ registration_response('veteran', 'Veteran', record.responses) }}
+        </dl>
+      </section>
+    {% endmacro %}
+
+    {% macro registration_expiry(expires_at) %}
+      Expires <time datetime="{{ expires_at }}">{{ expires_at }}</time>
+    {% endmacro %}
+
+    {% macro registration_submission(record) %}
+      <p>Registration submitted <time datetime="{{ record.submitted_at }}">{{ record.submitted_at }}</time>. {{ registration_expiry(record.expires_at) }}</p>
+    {% endmacro %}
+
+    {% macro member_action_icon(action) %}
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        {% if action == 'expiry' %}
+          <circle cx="8" cy="8" r="6" />
+          <path d="M8 4.5V8l2.5 1.5" />
+
+        {% else %}
+          <path d="M2 4h12M6 4V2.5h4V4M4 4l.5 10h7L12 4M6.5 7v4M9.5 7v4" />
+        {% endif %}
+      </svg>
+    {% endmacro %}
+
+    {% macro unavailable_member_action(action, grant, label, reason) %}
+      <button
+        class="btn btn-link p-0 member-action"
+        type="button"
+        aria-disabled="true"
+        aria-label="{{ label }}"
+        aria-describedby="member-{{ grant.person_uuid }}-{{ action }}-reason"
+        title="{{ reason }}"
+      >{{ member_action_icon(action) }}</button>
+      <span class="visually-hidden" id="member-{{ grant.person_uuid }}-{{ action }}-reason">{{ reason }}</span>
+    {% endmacro %}
+
+    {% macro group_member_table(team, grants, caption) %}
+      <table class="members-table">
+        <caption class="visually-hidden">{{ caption }} {{ team.name }}</caption>
+
+        <thead>
+          <tr>
+            <th scope="col">Member</th>
+            <th scope="col">Expires</th>
+            <th scope="col">Role</th>
+            <th scope="col"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for grant in grants %}
+            {% set can_remove = grant.can_remove | default(grant.can_edit) %}
+
+            <tr>
+              <th scope="row"><span class="member-name">{% if grant.display_name and grant.display_name != grant.username %}{{ grant.display_name }} <span class="member-username">({{ grant.username }})</span>{% else %}{{ grant.username }}{% endif %}</span>{% if grant.status != 'granted' or grant.registration_required %}<span class="group-detail">Removal pending</span>{% elif grant.sync_status != 'synced' %}<span class="group-detail">Update pending</span>{% endif %}</th>
+              <td class="member-expiry" data-label="Expires"><time datetime="{{ grant.expires_at }}">{{ grant.expires_at }}</time></td>
+              <td data-label="Role">{{ 'Manager' if grant.manager else 'Member' }}</td>
+              <td data-label="Actions">
+                <div class="member-actions">
+                  {% if grant.can_edit %}
+                    <button
+                      class="btn btn-link p-0 member-action"
+                      type="button"
+                      data-edit-member
+                      data-member-username="{{ grant.username }}"
+                      data-member-expiry="{{ grant.expires_at }}"
+                      aria-label="Edit expiry for {{ grant.username }}"
+                      title="Edit expiry"
+                    >{{ member_action_icon('expiry') }}</button>
+                  {% else %}
+                    {% set reason = 'Manager membership requires administrator changes' if grant.manager else ('Registration must be current to edit expiry' if grant.registration_required else 'An administrator must edit this membership') %}
+                    {{ unavailable_member_action('expiry', grant, 'Edit expiry for ' ~ grant.username, reason) }}
+                  {% endif %}
+                  {% if can_remove %}
+                    <form action="/access/groups/{{ team.uuid }}/revoke" method="post">
+                      <input type="hidden" name="csrf" value="{{ csrf }}">
+                      <input type="hidden" name="request_id" value="{{ grant.request_id }}">
+                      <input type="hidden" name="person_uuid" value="{{ grant.person_uuid }}">
+                      <button
+                        class="btn btn-link p-0 member-action"
+                        type="submit"
+                        aria-label="Remove {{ grant.username }} from {{ team.name }}"
+                        title="Remove member"
+                      >{{ member_action_icon('remove') }}</button>
+                    </form>
+                  {% else %}
+                    {% set reason = 'Manager membership requires administrator changes' if grant.manager else 'An administrator must remove this membership' %}
+                    {{ unavailable_member_action('remove', grant, 'Remove ' ~ grant.username ~ ' from ' ~ team.name, reason) }}
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endmacro %}
+
+    {% macro manage_group(team, activity) %}
+      {% set active = team.grants | selectattr('present') | list %}
+
+      <section class="managed-group-content" aria-labelledby="members-heading">
+        <div class="d-flex align-items-center gap-1 mb-2">
+          <h2 class="mb-0" id="members-heading">Members</h2>
+          <button
+            class="btn btn-link p-0 group-add-member"
+            type="button"
+            data-add-member
+            aria-label="Add member"
+            title="Add member"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M8 2v12M2 8h12" />
+            </svg>
+          </button>
+        </div>
+
+        {% if active %}
+          {{ group_member_table(team, active, 'Members of') }}
+
+        {% else %}
+          <p class="help">No members</p>
+        {% endif %}
+        <div
+          class="modal"
+          tabindex="-1"
+          role="dialog"
+          id="memberModal"
+          data-member-modal
+          aria-labelledby="member-form-title"
+          aria-hidden="true"
+        >
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <form
+                action="/access/groups/{{ team.uuid }}/grant"
+                method="post"
+                class="group-membership-form"
+                data-group-id="{{ team.uuid }}"
+                data-existing-members='{{ active | map(attribute="username") | list | tojson }}'
+                data-add-default-instant="{{ team.default_expiry }}"
+                {% if team.editing %}
+                  data-editing="true"
+                {% endif %}
+                {% if form_values %}
+                  data-member-reopen="true"
+                {% endif %}
+              >
+                <div class="modal-header">
+                  <h2 class="modal-title" id="member-form-title" data-member-form-heading>{{ 'Edit expiry' if team.editing else 'Add member' }}</h2>
+                  <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <input type="hidden" name="request_id" value="{{ team.request_id }}">
+                <input type="hidden" name="expires_at_utc" value="{{ form_values.expires_at_utc or '' }}">
+                <input
+                  type="hidden"
+                  name="editing_username"
+                  value="{{ form_values.editing_username if team.editing else '' }}"
+                >
+                <div class="modal-body">
+                  {% if errors and form_values %}
+                    <div class="text-danger mb-3" role="alert" tabindex="-1" data-member-errors>
+                      <p class="mb-0">{{ (errors | join(' ')).removesuffix('.') }}</p>
+                    </div>
+                  {% endif %}
+                  <div class="membership-fields">
+                    <div class="field member-search-field">
+                      <label for="member-{{ team.uuid }}">Member</label>
+                      <input
+                        class="form-control"
+                        id="member-{{ team.uuid }}"
+                        name="username"
+                        value="{{ form_values.username or '' }}"
+                        autocomplete="off"
+                        pattern="[a-z][a-z0-9_\-]{2,31}"
+                        maxlength="64"
+                        data-member-search
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-controls="member-options-{{ team.uuid }}"
+                        aria-expanded="false"
+                        aria-describedby="member-search-status"
+                        {% if team.editing %}
+                          readonly
+                        {% endif %}
+                        required
+                      >
+                      <ul
+                        id="member-options-{{ team.uuid }}"
+                        data-member-options
+                        role="listbox"
+                        aria-label="Matching members"
+                        hidden
+                      >
+                      </ul>
+                    </div>
+
+                    <div class="field expiry-field">
+                      <label for="expiry-{{ team.uuid }}">Expires</label>
+                      <div class="input-group flex-nowrap">
+                        <input
+                          class="form-control"
+                          id="expiry-{{ team.uuid }}"
+                          name="expires_at"
+                          type="datetime-local"
+                          step="any"
+                          value="{{ form_values.expires_at if form_values else team.default_expiry[:16] }}"
+                          data-default-instant="{{ form_values.expires_at_utc or team.default_expiry }}"
+                          aria-describedby="expiry-zone-{{ team.uuid }}"
+                          {% if form_values.expires_at_utc %}
+                            data-submitted-local="true"
+                          {% endif %}
+                          required
+                        >
+                        <span class="input-group-text" id="expiry-zone-{{ team.uuid }}" data-expiry-zone>UTC</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p
+                    id="member-search-status"
+                    class="help member-search-status"
+                    data-member-search-status
+                    role="status"
+                    aria-live="polite"
+                  ></p>
+                </div>
+
+                <div class="modal-footer">
+                  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+                  <button class="btn btn-primary" type="submit" data-member-submit>{{ 'Save expiry' if team.editing else 'Add member' }}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <details class="group-activity" id="group-activity"{% if activity_paginated %} open{% endif %}>
+          <summary><h2 class="d-inline mb-0" id="activity-heading">Activity</h2></summary>
+
+          {% if activity %}
+
+            <table class="members-table">
+              <caption class="visually-hidden">Activity for {{ team.name }}</caption>
+
+              <thead>
+                <tr>
+                  <th scope="col">Time</th>
+                  <th scope="col">Member</th>
+                  <th scope="col">Action</th>
+                  <th scope="col">Changed by</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {% for event in activity %}
+                  <tr>
+                    <td data-label="Time"><time datetime="{{ event.at }}">{{ event.at }}</time></td>
+                    <td data-label="Member">{{ event.username }}</td>
+                    <td data-label="Action">{{ event.action }}</td>
+                    <td data-label="Changed by">{{ event.actor }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+          {% else %}
+            <p class="help mt-3">No changes recorded</p>
+          {% endif %}
+
+          {% if activity_previous_url or activity_next_url %}
+            <nav class="activity-pagination" aria-label="Activity pages">
+              {% if activity_previous_url %}
+                <a class="btn btn-secondary" href="{{ activity_previous_url }}" rel="prev">Newer</a>
+
+              {% else %}
+                <span></span>
+              {% endif %}
+
+              {% if activity_next_url %}
+                <a class="btn btn-secondary" href="{{ activity_next_url }}" rel="next">Older</a>
+              {% endif %}
+            </nav>
+          {% endif %}
+        </details>
+      </section>
+    {% endmacro %}
+
+    {% macro group_rows(memberships) %}
+      <ul class="group-list">
+        {% for membership in memberships %}
+          <li data-group-item data-group-search="{{ membership.name }} {{ membership.spn }}">
+            <a
+              class="group-link"
+              href="/access?group={{ membership.uuid }}"
+              {% if selected_group and membership.uuid == selected_group.uuid %}
+                aria-current="true"
+              {% endif %}
+              {% if membership.manager %}
+                aria-label="{{ membership.name }}, manager access"
+                title="You can manage this group"
+              {% endif %}
+            >
+              {% if membership.manager %}
+                <span class="group-icon" aria-hidden="true">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linejoin="round"
+                    focusable="false"
+                  >
+                    <path d="m8 1 2.16 4.38L15 6.08l-3.5 3.41.83 4.83L8 12.04l-4.33 2.28.83-4.83L1 6.08l4.84-.7Z" />
+                  </svg>
+                </span>
+              {% endif %}
+              <span class="group-name">{{ membership.name }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endmacro %}
+
+    {% macro group_search(member_count, controls) %}
+      <div class="group-toolbar">
+        <div class="group-search-field">
+          <label for="group-search">Find a group</label>
+          <input
+            class="form-control"
+            id="group-search"
+            type="search"
+            autocomplete="off"
+            placeholder="Search groups"
+            aria-controls="{{ controls }}"
+            data-group-search-input
+          >
+        </div>
+        <p class="group-count" role="status" aria-live="polite" data-group-count>Member of {{ member_count }} {{ 'group' if member_count == 1 else 'groups' }}</p>
+      </div>
+      <p class="help search-empty" data-group-no-results hidden>No groups match your search</p>
+    {% endmacro %}
+
+    <a class="skip-link" href="#content">Skip to content</a>
+
+    {% if account_page %}
+
+      <header class="account-header navbar navbar-expand-md identity-account-navbar">
+        <div class="account-header-inner">
+          <a class="account-brand navbar-brand" href="{{ native_ui }}/apps"><img src="/assets/logo.png" width="40" height="40" alt="">SlugSec</a>
+          <button
+            class="navbar-toggler"
+            type="button"
+            data-account-nav-toggle
+            data-bs-toggle="collapse"
+            data-bs-target="#account-navigation"
+            aria-controls="account-navigation"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          ><span class="navbar-toggler-icon"></span></button>
+          <nav class="account-nav navbar-collapse collapse" id="account-navigation" aria-label="Account">
+            <a class="nav-link" href="{{ native_ui }}/apps">Applications</a>
+            <div class="account-nav-personal navbar-nav">
+              <a
+                class="nav-link{% if page in ['access', 'access_error'] %} active{% endif %}"
+                href="/access"
+                {% if page in ['access', 'access_error'] %}
+                  aria-current="page"
+                {% endif %}
+              >Groups</a>
+              <span class="account-nav-separator" aria-hidden="true"></span>
+              <div class="dropdown identity-account-menu">
+                <button
+                  class="nav-link dropdown-toggle{% if page in ['membership', 'membership_error'] %} active{% endif %}"
+                  type="button"
+                  id="identity-account-menu-toggle"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <span data-account-name title="{{ account_name or 'Account' }}">{{ account_name or 'Account' }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="identity-account-menu-toggle">
+                  <li>
+                    <a class="dropdown-item" href="{{ native_ui }}/profile">Profile</a>
+                  </li>
+                  <li>
+                    <a
+                      class="dropdown-item{% if page in ['membership', 'membership_error'] %} active{% endif %}"
+                      href="/membership"
+                      {% if page in ['membership', 'membership_error'] %}
+                        aria-current="page"
+                      {% endif %}
+                    >Registration</a>
+                  </li>
+                  <li>
+                    <hr class="dropdown-divider">
+                  </li>
+                  <li>
+                    <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#signoutModal">Sign out</button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </nav>
+        </div>
+      </header>
+      <div
+        class="modal"
+        tabindex="-1"
+        role="dialog"
+        id="signoutModal"
+        aria-labelledby="signout-title"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="signout-title">Confirm Sign out</h5>
+            </div>
+
+            <div class="modal-body text-center">Are you sure you'd like to log out?</div>
+
+            <div class="modal-footer">
+              <form action="/access/logout" method="post">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <button class="btn btn-primary" type="submit">Sign out</button>
+              </form>
+              <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+    <div class="{{ 'account-shell' if account_page else 'shell' }}">
+      {% if not account_page %}
+
+        <header class="masthead">
+          <a class="brand" href="{{ auth_login_url }}" aria-label="{{ auth_title }} home">
+            <img src="/assets/logo.png" width="224" height="224" alt="">
+            <span>{{ auth_title }}</span>
+            <span class="tagline">{{ tagline }}</span>
+          </a>
+        </header>
+      {% endif %}
+
+      <main
+        id="content"
+        tabindex="-1"
+        {% if account_page %}
+          class="account-layout"
+        {% endif %}
+        {% if page == 'access' and access.memberships %}
+          data-group-browser
+        {% endif %}
+      >
+        {% if not account_page %}
+
+          <section class="card">
+            <div class="card-body p-4">
+        {% endif %}
+
+        {% if account_page %}
+
+          {% if page == 'access' and access.memberships %}
+            {% set managed = access.memberships | selectattr('manager') | list %}
+            {% set remaining = access.memberships | rejectattr('manager') | list %}
+            {% set regular = remaining | rejectattr('system') | list %}
+            {% set system = remaining | selectattr('system') | list %}
+
+            <aside class="account-sidebar" aria-label="Group navigation">
+              <details class="group-sidebar" open data-group-navigation>
+                <summary>Choose a group{% if selected_group %}<span class="group-name">{{ selected_group.name }}</span>{% endif %}</summary>
+                {{ group_search(access.memberships | selectattr('present') | list | length, 'group-index') }}
+                <nav id="group-index" aria-label="Your groups">
+                  {% if managed or regular %}
+                    <div data-group-section>{{ group_rows(managed + regular) }}</div>
+                  {% endif %}
+
+                  {% if not access.memberships | selectattr('present') | list %}
+                    <p class="help" data-group-empty>You aren't in any groups</p>
+                  {% endif %}
+
+                  {% if system %}
+
+                    <details
+                      data-group-section
+                      data-system-groups
+                      {% if selected_group and selected_group.system and request.args.get('group') %}
+                        open
+                      {% endif %}
+                    >
+                      <summary>System groups</summary>
+                      {{ group_rows(system) }}
+                    </details>
+                  {% endif %}
+                </nav>
+              </details>
+            </aside>
+          {% endif %}
+          <div class="account-content">
+            <div class="account-page-heading">
+              <h1 class="h2"{% if page == 'access' and selected_group %} id="selected-group-name"{% endif %}>{{ selected_group.name if page == 'access' and selected_group else account_titles[page] }}</h1>
+
+              {% if page == 'access' and selected_group %}
+                <p class="group-description">{{ (selected_group.description | trim).removesuffix('.') or 'This group has no description' }}</p>
+
+              {% else %}
+                <hr>
+              {% endif %}
+            </div>
+        {% endif %}
+
+        {% if page in ['access_error', 'membership_error'] %}
+
+          <section class="account-error">
+            {% if registration_required %}
+              {% include 'registration-notice.html' %}
+
+            {% else %}
+              {{ notices() }}
+              <a class="btn btn-primary" href="{{ action_url }}">{{ action_label }}</a>
+            {% endif %}
+          </section>
+
+        {% elif page == 'access' %}
+
+          <section>
+            {{ notices(show_errors=not (form_values and selected_group and selected_group.management)) }}
+
+            {% if selected_group %}
+              {% set grant = selected_group.grant %}
+
+              <section class="group-panel" aria-labelledby="selected-group-name">
+                <dl class="group-summary">
+                  <div>
+                    <dt>Your role</dt>
+                    <dd>{% if selected_group.manager %}Manager{% elif selected_group.present %}Member{% else %}None{% endif %}</dd>
+                  </div>
+
+                  {% if selected_group.managed_through %}
+                    <div>
+                      <dt>Managed through</dt>
+                      <dd><a href="/access?group={{ selected_group.managed_through.uuid }}">{{ selected_group.managed_through.name }}</a></dd>
+                    </div>
+                  {% endif %}
+
+                  {% if selected_group.manages %}
+                    <div>
+                      <dt>Manages</dt>
+                      <dd>{% for group in selected_group.manages %}<a href="/access?group={{ group.uuid }}">{{ group.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</dd>
+                    </div>
+                  {% endif %}
+
+                  {% if not selected_group.present %}
+                    <div>
+                      <dt>Your membership</dt>
+                      <dd>{% if grant and grant.registration_required %}Registration required{% elif grant and grant.status == 'granted' %}Update pending{% elif grant and grant.status == 'revoked' %}Removed{% elif grant and grant.status == 'expired' %}Expired{% else %}Not a member{% endif %}</dd>
+                    </div>
+                  {% endif %}
+
+                  {% if grant and grant.status == 'granted' %}
+                    <div>
+                      <dt>Your membership expires</dt>
+                      <dd><time datetime="{{ grant.expires_at }}">{{ grant.expires_at }}</time></dd>
+                    </div>
+                  {% endif %}
+                </dl>
+
+                {% if grant and selected_group.present and (grant.sync_status != 'synced' or grant.status != 'granted' or grant.registration_required) %}
+                  <p class="help">{{ 'Removal pending' if grant.status != 'granted' or grant.registration_required else 'Update pending' }}</p>
+                {% endif %}
+                <hr class="group-summary-divider">
+
+                {% if selected_group.manager and selected_group.management %}
+                  {{ manage_group(selected_group.management, group_activity) }}
+
+                {% else %}
+
+                  <section class="managed-group-content" aria-labelledby="members-heading">
+                    <h2 id="members-heading">Members</h2>
+                    <p class="help">Member list is unavailable for this group</p>
+
+                    {% if selected_group.manager %}
+                      <a class="btn btn-secondary" href="{{ credentials_url }}">Set up MFA</a>
+                    {% endif %}
+                    <h2 class="mt-4" id="activity-heading">Activity</h2>
+                    <p class="help">Activity is unavailable for this group</p>
+                  </section>
+                {% endif %}
+              </section>
+            {% endif %}
+
+            {% if not selected_group %}
+              <p>You aren’t in any groups</p>
+            {% endif %}
+          </section>
+
+        {% elif page == 'membership' %}
+
+          <section class="membership-page">
+            {{ notices() }}
+
+            {% if membership_suspended %}
+              <p>Access paused. Contact an administrator to restore access</p>
+            {% endif %}
+
+            {% if membership_record %}
+              {{ registration_submission(membership_record) }}
+              {{ registration_responses(membership_record) }}
+
+            {% else %}
+              <p>{{ registration_expiry(registration_period.expires_at) }}</p>
+
+              <form action="/membership" method="post" class="registration-form">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <input type="hidden" name="period" value="{{ registration_period.key }}">
+                <p>* Required</p>
+                <fieldset class="registration-section" id="registration-contact">
+                  <legend class="visually-hidden">About you</legend>
+                  <div class="registration-contact-fields">
+                    {{ registration_input('preferred_name', 'Preferred name', autocomplete='nickname') }}
+                    {{ registration_select('school_level', 'Level in school', 'Select your level') }}
+                  </div>
+                  {{ registration_other('school_level', 'school_level_other', 'Other level in school') }}
+                  {{ registration_choices('studies', 'Field of study', multiple=true) }}
+                  {{ registration_other('studies', 'study_other', 'Other field of study', maximum=240) }}
+                </fieldset>
+                <fieldset class="registration-section" id="registration-club">
+                  <legend class="visually-hidden">SlugSec information</legend>
+                  {{ registration_select('shirt_size', 'T-shirt size', 'Select a size') }}
+                  {{ registration_other('shirt_size', 'shirt_size_other', 'Other T-shirt size', maximum=40) }}
+                  {{ registration_choices('heard_about', 'How did you hear about SlugSec?', multiple=true, required=true) }}
+                  {{ registration_followup('heard_about', 'social_media', 'social_media_source', 'Which platform?') }}
+                  {{ registration_followup('heard_about', 'discord', 'discord_source', 'Which server or Student Hub?', maximum=240) }}
+                  {{ registration_followup('heard_about', 'faculty', 'faculty_name', 'Which professor or faculty member?') }}
+                  {{ registration_other('heard_about', 'heard_about_other', 'Other source', maximum=240) }}
+                </fieldset>
+                <fieldset class="registration-section registration-demographics" id="registration-demographics">
+                  <legend>Demographics</legend>
+                  <p>These questions help SlugSec apply for grants and sponsorships. We only share anonymous statistics</p>
+                  {{ registration_choices('gender', 'Gender identity') }}
+                  {{ registration_other('gender', 'gender_other', 'Other gender identity') }}
+                  {{ registration_choices('ethnicity', 'Ethnicity', multiple=true) }}
+                  {{ registration_other('ethnicity', 'ethnicity_other', 'Other ethnicity') }}
+                  {{ registration_choices('lgbtq', 'Do you identify as part of the LGBT+ community?') }}
+                  {{ registration_choices('veteran', 'Are you a veteran?') }}
+                </fieldset>
+                <div class="registration-submit">
+                  <button class="btn btn-primary" type="submit">Complete registration</button>
+                </div>
+              </form>
+            {% endif %}
+          </section>
+
+        {% elif page == 'join' %}
+          <h1 class="h2">Create an account</h1>
+          {{ notices() }}
+          <div class="auth-actions">
+            <form action="/google/start" method="post">
+              <input type="hidden" name="purpose" value="enroll">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <button class="btn btn-primary w-100" type="submit" aria-describedby="ucsc-help">Continue with UCSC email</button>
+              <p class="help text-body-secondary small" id="ucsc-help">We use your UCSC Google account to check your affiliation and get your name and email</p>
+            </form>
+            <p class="help text-body-secondary small">Not affiliated with UCSC? Contact <a href="mailto:slugsec@ucsc.edu">slugsec@ucsc.edu</a> to request an account</p>
+            <div class="auth-actions">
+              <a class="btn btn-secondary" href="{{ auth_login_url }}">Back to login</a>
+            </div>
+          </div>
+
+        {% elif page == 'recover' %}
+          <h1 class="h2">Recover your account</h1>
+          {{ notices() }}
+
+          <form action="/google/start" method="post">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="purpose" value="recovery">
+            <button class="btn btn-primary w-100" type="submit" aria-describedby="recovery-help">Continue with UCSC email</button>
+          </form>
+          <p class="help text-body-secondary small" id="recovery-help">Use the UCSC Google account you registered with</p>
+          <p class="help text-body-secondary small">For other accounts, contact <a href="mailto:slugsec@ucsc.edu">slugsec@ucsc.edu</a></p>
+          <div class="auth-actions">
+            <a class="btn btn-secondary" href="{{ auth_login_url }}">Back to login</a>
+          </div>
+
+        {% elif page == 'profile' or page == 'setup' %}
+          <h1 class="h2">{% if credential_stage == 'totp' %}Set up your authenticator{% elif recovery %}Reset your password{% else %}Create your password{% endif %}</h1>
+          {{ notices() }}
+
+          {% if credential_stage != 'totp' %}
+            <dl class="profile-details">
+              <div>
+                <dt>Name</dt>
+                <dd>{{ applicant.name or profile.display_name }}</dd>
+              </div>
+              <div>
+                <dt>Email</dt>
+                <dd>{{ applicant.email or profile.email }}</dd>
+              </div>
+            </dl>
+            <p class="help text-body-secondary small">Verified through your UCSC Google account. Contact infrastructure administration to change these details</p>
+          {% endif %}
+
+          <form
+            action="{% if credential_stage == 'totp' %}/setup/finish{% elif page == 'profile' %}/join/complete{% else %}/setup{% endif %}"
+            method="post"
+            data-credential-flow
+          >
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" autocomplete="username" value="{{ applicant.username or google_username }}">
+
+            <div class="field">
+              <label class="form-label" for="username">Username</label>
+              <output id="username" class="form-control-plaintext">{{ applicant.username or google_username }}</output>
+            </div>
+
+            {% if credential_stage == 'totp' %}
+              <p class="help text-body-secondary small">Scan this code with your authenticator app, then enter its six-digit code</p>
+              <img
+                class="authenticator-qr"
+                src="/setup/qr.svg"
+                alt="Authenticator setup QR code"
+                width="224"
+                height="224"
+              >
+              <details class="setup-key">
+                <summary>Enter setup key manually</summary>
+                <code>{{ totp_secret }}</code>
+              </details>
+
+              <div class="field">
+                <label class="form-label" for="code">Authenticator code</label>
+                <input
+                  class="form-control"
+                  id="code"
+                  name="code"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="one-time-code"
+                  pattern="[0-9]{6}"
+                  maxlength="6"
+                  required
+                  autofocus
+                >
+              </div>
+
+              {% if compatibility %}
+                <div class="check-label form-check mb-3">
+                  <input class="form-check-input" id="allow-sha1" type="checkbox" name="allow_sha1" value="on">
+                  <label class="form-check-label" for="allow-sha1">Use this authenticator app in compatibility mode</label>
+                </div>
+              {% endif %}
+              <button class="btn btn-primary w-100" type="submit">Save and finish</button>
+
+            {% else %}
+
+              <div class="field">
+                <label class="form-label" for="password">Password</label>
+                <input
+                  class="form-control"
+                  id="password"
+                  name="password"
+                  type="password"
+                  autocomplete="new-password"
+                  minlength="15"
+                  maxlength="128"
+                  required
+                  autofocus
+                >
+              </div>
+
+              <div class="field">
+                <label class="form-label" for="password-confirm">Confirm password</label>
+                <input
+                  class="form-control"
+                  id="password-confirm"
+                  name="password_confirm"
+                  type="password"
+                  autocomplete="new-password"
+                  minlength="15"
+                  maxlength="128"
+                  required
+                >
+              </div>
+              <button class="btn btn-primary w-100" type="submit">{% if recovery %}Save password{% else %}Create account{% endif %}</button>
+            {% endif %}
+          </form>
+
+        {% elif page == 'error' %}
+          <h1 class="h2">We couldn’t complete that step</h1>
+          {{ notices() }}
+          <div class="auth-actions">
+            <a class="btn btn-primary" href="{{ auth_login_url }}">Back to login</a>
+            <a class="btn btn-secondary" href="/recover">Reset password</a>
+          </div>
+        {% endif %}
+
+        {% if account_page %}
+          </div>
+
+        {% else %}
+            </div>
+          </section>
+        {% endif %}
+      </main>
+    </div>
+  </body>
+</html>

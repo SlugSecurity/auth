@@ -1,0 +1,168 @@
+groups:
+  - name: identity-operations
+    rules:
+      - alert: IdentityUsageCollectionUnavailable
+        expr: >-
+          identity_sso_metrics_read_success == 0
+          or identity_sso_collector_connected == 0
+          or (up{job="kanidm-observer"} == 1 unless on(job, instance) identity_sso_metrics_read_success)
+          or (identity_sso_metrics_read_success == 1 unless on(job, instance) identity_sso_collector_connected)
+        for: 2m
+
+        labels:
+          severity: warning
+        annotations:
+          summary: SSO usage collection is unavailable
+
+      - alert: IdentityUsageEventRejected
+        expr: increase(identity_sso_collector_rejected_total[5m]) > 0
+        for: 1m
+
+        labels:
+          severity: warning
+        annotations:
+          summary: SSO usage collection rejected an event
+
+      - alert: IdentityObserverUnavailable
+        expr: up{job="kanidm-observer"} == 0 or absent(up{job="kanidm-observer"})
+        for: 1m
+
+        labels:
+          severity: critical
+        annotations:
+          summary: Identity observer cannot be scraped
+
+      - alert: IdentityActivityUnavailable
+        expr: >-
+          up{job="kanidm-activity"} == 0
+          or absent(up{job="kanidm-activity"})
+          or time() - timestamp(up{job="kanidm-activity"}) > 150
+        for: 2m
+
+        labels:
+          severity: warning
+        annotations:
+          summary: Activity metrics cannot be scraped
+
+      - alert: IdentityObserverStale
+        expr: >-
+          time() - kanidm_observer_poll_timestamp_seconds > 90
+          or (up{job="kanidm-observer"} == 1 unless on(job, instance) kanidm_observer_poll_timestamp_seconds)
+        for: 2m
+
+        labels:
+          severity: critical
+        annotations:
+          summary: Identity observer has stopped completing polls
+
+      - alert: IdentityOperationsUnavailable
+        expr: >-
+          identity_operations_metrics_fetch_success == 0
+          or (up{job="kanidm-observer"} == 1 unless on(job, instance) identity_operations_metrics_fetch_success)
+          or (identity_operations_metrics_fetch_success == 1 unless on(job, instance) identity_readiness_checked_timestamp_seconds)
+          or time() - identity_readiness_checked_timestamp_seconds > 90
+        for: 2m
+
+        labels:
+          severity: critical
+        annotations:
+          summary: Enrollment operations metrics are missing, failed or stale
+
+      - alert: IdentityDependencyFailed
+        expr: identity_dependency_ready == 0
+        for: 2m
+
+        labels:
+          severity: critical
+        annotations:
+          summary: An authenticated identity dependency is not ready
+
+      - alert: IdentityServiceTokenExpiring
+        expr: identity_service_token_remaining_seconds < 7 * 24 * 3600
+        for: 5m
+
+        labels:
+          severity: warning
+        annotations:
+          summary: A dedicated service API token expires within seven days
+
+      - alert: IdentityCertificateExpiring
+        expr: 'min without (__name__) ({__name__=~"identity_(kanidm|enrollment)_certificate_remaining_seconds"}) < 14 * 24 * 3600'
+        for: 5m
+
+        labels:
+          severity: warning
+        annotations:
+          summary: An identity TLS certificate expires within fourteen days
+
+      - alert: IdentityNativeBackupStale
+        expr: identity_native_backup_age_seconds_known == 0 or identity_native_backup_age_seconds > 26 * 3600
+        for: 15m
+
+        labels:
+          severity: critical
+        annotations:
+          summary: No recent nonempty Kanidm online backup file was found
+
+      - alert: IdentityApplicationEventStoreFailed
+        expr: identity_application_event_store_read_success == 0
+        for: 2m
+
+        labels:
+          severity: warning
+        annotations:
+          summary: Aggregate application event counters could not be read
+
+      - alert: IdentityTeamWorkerFailed
+        expr: identity_dependency_ready{dependency="access_worker"} == 0
+        for: 2m
+
+        labels:
+          severity: critical
+        annotations:
+          summary: Timed group membership reconciliation is failed or stale
+
+      - alert: IdentityPairedBackupStale
+        expr: identity_operational_alarm{alarm="paired_backup_stale"} == 1
+        for: 15m
+
+        labels:
+          severity: critical
+        annotations:
+          summary: No paired encrypted identity backup receipt within twenty-six hours
+
+      - alert: IdentityRestoreDrillStale
+        expr: identity_operational_alarm{alarm="paired_restore_stale"} == 1
+        for: 15m
+
+        labels:
+          severity: warning
+        annotations:
+          summary: No paired identity restore drill receipt within thirty-one days
+
+      - alert: IdentityTeamLedgerUnavailable
+        expr: identity_dependency_ready{dependency="access_ledger"} == 0
+        for: 2m
+
+        labels:
+          severity: critical
+        annotations:
+          summary: Timed membership backlog cannot be read
+
+      - alert: IdentityTeamGrantOverdue
+        expr: identity_team_grants_overdue > 0
+        for: 2m
+
+        labels:
+          severity: critical
+        annotations:
+          summary: An expired timed membership remains active
+
+      - alert: IdentityTeamNativeSyncStale
+        expr: identity_team_native_sync_pending > 0 and identity_team_native_sync_oldest_age_seconds > 120
+        for: 2m
+
+        labels:
+          severity: critical
+        annotations:
+          summary: A durable group membership change has not reached Kanidm

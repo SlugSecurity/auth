@@ -1,0 +1,44 @@
+[Unit]
+Requires=docker.service identity-auth.service
+After=docker.service identity-auth.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=10005
+
+EnvironmentFile=/etc/identity/deployment.env
+Environment=PATH=/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+
+ExecStart=/usr/bin/python3 /opt/auth/service/usage.py --state ${IDENTITY_USAGE_STATE_DIR} --output ${IDENTITY_USAGE_EXPORT_DIR}/usage.prom --native-url https://auth.slugsec.club:18543 --ca ${IDENTITY_PKI_DIR}/ca.pem --probe-client account_portal --container identity-kanidm-1
+
+Restart=always
+RestartSec=5s
+TimeoutStopSec=30s
+
+MemoryMax=128M
+TasksMax=32
+
+UMask=0077
+NoNewPrivileges=true
+CapabilityBoundingSet=
+
+ProtectSystem=strict
+BindReadOnlyPaths=/opt/auth/deploy/oci/usage-hosts:/etc/hosts
+ReadWritePaths=/var/lib/identity/usage /var/lib/identity/usage-export
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

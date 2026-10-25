@@ -1,0 +1,9 @@
+[Unit]
+After=identity-auth.service
+
+[Service]
+Type=oneshot
+
+TimeoutStartSec=300
+
+ExecStart=/usr/bin/python3 /opt/auth/deploy/manage.py renew-certificates --env /etc/identity/deployment.env

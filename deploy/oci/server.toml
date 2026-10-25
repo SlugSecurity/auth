@@ -1,0 +1,18 @@
+version = "2"
+
+domain = "auth.slugsec.club"
+origin = "https://auth.slugsec.club"
+
+bindaddress = "0.0.0.0:443"
+db_path = "/data/kanidm.db"
+
+tls_chain = "/data/tls/current/chain.pem"
+tls_key = "/data/tls/current/key.pem"
+
+adminbindpath = "/run/kanidm/admin.sock"
+log_level = "info"
+
+[online_backup]
+path = "/data/backups"
+schedule = "0 */6 * * *"
+versions = 28
