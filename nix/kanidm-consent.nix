@@ -2,6 +2,7 @@
   pkgs,
   container ? true,
   uiVersion ? null,
+  portalUrl ? "https://my.slugsec.club",
 }:
 assert pkgs.kanidm_1_11.version == "1.11.2";
 let
@@ -26,6 +27,10 @@ let
 
     postPatch =
       (if container then "" else old.postPatch)
+      + ''
+        substituteInPlace server/core/templates/navbar.html \
+          --replace-fail '__IDENTITY_PORTAL_URL__' ${pkgs.lib.escapeShellArg portalUrl}
+      ''
       + pkgs.lib.optionalString (uiVersion != null) ''
         substituteInPlace server/core/src/https/cache_buster.rs \
           --replace-fail 'option_env!("KANIDM_PKG_VERSION_HASH")' \

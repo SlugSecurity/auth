@@ -1,7 +1,9 @@
 { pkgs }:
 let
+  portalUrl = "https://my.slugsec.club";
+
   native = import ../nix/kanidm-consent.nix {
-    inherit pkgs;
+    inherit pkgs portalUrl;
     uiVersion = brandingHash;
   };
 
@@ -33,7 +35,7 @@ let
     cp ${assets}/upstream-style.js ${assets}/enrollment-notice.js branding/kanidm-1.11.2/
     cp ${../service/enrollment-ui/registration-notice.html} enrollment-ui/registration-notice.html
     ${pkgs.buildPackages.python3}/bin/python branding_config.py \
-      https://my.slugsec.club auth.slugsec.club > "$out"
+      ${pkgs.lib.escapeShellArg portalUrl} auth.slugsec.club > "$out"
   '';
 
   brandingHash = builtins.hashString "sha256" (

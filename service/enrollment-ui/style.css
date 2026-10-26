@@ -1048,7 +1048,7 @@ main.container-lg > .row > .col-md-3:has(.card img.oauth2-img#account_portal) {
   padding: 0.5rem 0.25rem;
   border: 0;
   background: transparent;
-  color: var(--muted);
+  color: var(--bs-secondary-color);
   font: inherit;
 }
 
@@ -1106,7 +1106,7 @@ main.container-lg > .row > .col-md-3:has(.card img.oauth2-img#account_portal) {
 }
 
 .identity-account-navbar .dropdown-item.active {
-  color: var(--text);
+  color: var(--bs-body-color);
   background-color: transparent;
 }
 
@@ -1123,8 +1123,11 @@ main.container-lg > .row > .col-md-3:has(.card img.oauth2-img#account_portal) {
 }
 
 .identity-account-navbar .nav-link[aria-current="page"],
-body.identity-account .account-nav a.nav-link[aria-current="page"],
 .identity-account-navbar .identity-account-menu > .nav-link.active {
+  color: var(--bs-body-color);
+}
+
+body.identity-account .account-nav a.nav-link[aria-current="page"] {
   color: var(--text);
 }
 

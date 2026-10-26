@@ -698,150 +698,18 @@
     }
   }
 
-  let accountProfileRequest;
-
-  function orderItems(parent, items) {
-    for (const [index, item] of items.entries()) {
-      if (parent.children[index] !== item) {
-        parent.insertBefore(item, parent.children[index] || null);
-      }
-    }
-  }
-
-  async function showAccountLinks() {
-    simplifyApplications();
-
-    const collapse = document.getElementById("navbarCollapse");
-    const navbar = collapse?.closest("nav.navbar");
+  function updateAccountNavigation() {
+    const navbar = document.querySelector("nav.identity-account-navbar");
 
     if (!navbar)
       return;
 
-    const profile = collapse
-      .querySelector('a[href="/ui/profile"]')
-      ?.closest("li");
-    const signout = navbar
-      .querySelector('a[data-bs-target="#signoutModal"]')
-      ?.closest("li");
-    const accountLinks = collapse.querySelector(":scope > .navbar-nav.ms-md-auto");
-
-    if (!profile || !signout || !accountLinks)
-      return;
-
-    navbar.classList.add("identity-account-navbar");
-    accountLinks.classList.add("identity-account-links");
-
-    const accountItems = [];
-    let registration;
-
-    for (const [path, label] of [
-      ["access", "Groups"],
-      ["membership", "Registration"],
-    ]) {
-      let item = collapse
-        .querySelector(`[data-identity-link="${path}"]`)
-        ?.closest("li");
-
-      if (!item) {
-        item = document.createElement("li");
-
-        const link = document.createElement("a");
-        link.dataset.identityLink = path;
-        link.className = "nav-link";
-        link.href = `${portalUrl}/${path}`;
-        item.append(link);
-      }
-
-      item.querySelector("a").textContent = label;
-
-      if (path === "membership")
-        registration = item;
-      else
-        accountItems.push(item);
-    }
-
-    let menu = navbar.querySelector(".identity-account-menu");
-
-    if (!menu) {
-      menu = document.createElement("li");
-      menu.className = "nav-item dropdown identity-account-menu";
-
-      const toggle = document.createElement("button");
-      toggle.id = "identity-account-menu-toggle";
-      toggle.type = "button";
-      toggle.className = "nav-link dropdown-toggle d-flex align-items-center gap-2";
-      toggle.dataset.bsToggle = "dropdown";
-      toggle.setAttribute("aria-expanded", "false");
-
-      const name = document.createElement("span");
-      name.dataset.accountName = "";
-      name.textContent = "Account";
-      toggle.append(name);
-
-      const options = document.createElement("ul");
-      options.className = "dropdown-menu dropdown-menu-end";
-      options.setAttribute("aria-labelledby", toggle.id);
-      signout.querySelector("a").classList.replace("nav-link", "dropdown-item");
-      options.append(signout);
-      menu.append(toggle, options);
-
-      const modal = document.getElementById("signoutModal");
-      modal?.querySelector(".modal-body img")?.remove();
-
-      for (const lineBreak of modal?.querySelectorAll(".modal-body br") || []) {
-        lineBreak.remove();
-      }
-
-      modal?.querySelector('.modal-footer a[href="/ui/logout"] button')
-        ?.classList.replace("btn-success", "btn-primary");
-
-      if (modal && !modal.dataset.identityAccountFocus) {
-        modal.dataset.identityAccountFocus = "true";
-        modal.addEventListener("hidden.bs.modal", () => {
-          document.getElementById(toggle.id)?.focus();
-        });
-      }
-    }
-
-    let separator = accountLinks.querySelector(":scope > .account-nav-separator");
-
-    if (!separator) {
-      separator = document.createElement("li");
-      separator.className = "account-nav-separator";
-      separator.setAttribute("aria-hidden", "true");
-    }
-
-    accountItems.push(separator, menu);
-    orderItems(accountLinks, accountItems);
-    profile.querySelector("a").classList.replace("nav-link", "dropdown-item");
-    registration.querySelector("a").classList.replace("nav-link", "dropdown-item");
-
-    const options = menu.querySelector(":scope > .dropdown-menu");
-    options.classList.add("shadow");
-
-    let divider = options.querySelector(":scope > li > .dropdown-divider")?.parentElement;
-
-    if (!divider) {
-      divider = document.createElement("li");
-
-      const line = document.createElement("hr");
-      line.className = "dropdown-divider";
-      divider.append(line);
-    }
-
-    orderItems(options, [profile, registration, divider, signout]);
-
     const profilePaths = ["/ui/profile", "/ui/update_credentials", "/ui/enrol", "/ui/radius", "/ui/reset"];
-    const navigationLinks = [
-      ...collapse.querySelectorAll(":scope > .navbar-nav > li > a.nav-link"),
-      profile.querySelector("a"),
-      registration.querySelector("a"),
-    ];
+    const adminPage = location.pathname === "/ui/admin" || location.pathname.startsWith("/ui/admin/");
 
-    for (const link of navigationLinks) {
+    for (const link of navbar.querySelectorAll("[data-identity-navigation]")) {
       const url = new URL(link.href, location.href);
       const adminLink = url.pathname === "/ui/admin" || url.pathname.startsWith("/ui/admin/");
-      const adminPage = location.pathname === "/ui/admin" || location.pathname.startsWith("/ui/admin/");
       const active = url.origin === location.origin && (
         url.pathname === "/ui/profile"
           ? profilePaths.some((path) => location.pathname === path || location.pathname.startsWith(path + "/"))
@@ -855,15 +723,49 @@
         link.removeAttribute("aria-current");
     }
 
-    menu.querySelector("button").classList.toggle("active", !!options.querySelector('[aria-current="page"]'));
+    const menu = navbar.querySelector(".identity-account-menu");
+    menu?.querySelector("button")?.classList.toggle(
+      "active", !!menu.querySelector('.dropdown-menu [aria-current="page"]'),
+    );
 
-    accountProfileRequest?.abort();
+    const modal = document.getElementById("signoutModal");
+
+    if (modal && !modal.dataset.identityAccountFocus) {
+      modal.dataset.identityAccountFocus = "true";
+      modal.addEventListener("hidden.bs.modal", () => {
+        document.getElementById("identity-account-menu-toggle")?.focus();
+      });
+    }
+  }
+
+  let registrationRequest;
+
+  async function showRegistrationGuidance(force = false) {
+    const main = document.querySelector("main.container-lg");
+
+    if (
+      main?.querySelector(":scope > div > h2")?.textContent.trim() !== "Applications" ||
+      main.querySelector(":scope > .row > .col-md-3") ||
+      (main.dataset.identityRegistrationChecked && !force) ||
+      registrationRequest?.main === main
+    )
+      return;
+
+    const empty = [...main.querySelectorAll(":scope > p")].find(
+      (paragraph) => paragraph.textContent.trim() === "No linked applications available",
+    );
+    const row = main.querySelector(":scope > .row");
+    const guidance = main.querySelector("[data-identity-registration-guidance]");
+    const placeholder = empty || (row && !row.querySelector(":scope > .col-md-3") ? row : null) || guidance;
+
+    if (!placeholder)
+      return;
+
+    registrationRequest?.controller.abort();
 
     const controller = new AbortController();
-    accountProfileRequest = controller;
-
-    const name = menu.querySelector("[data-account-name]");
-    name.textContent = "Account";
+    const request = { main, controller };
+    registrationRequest = request;
 
     const timeout = setTimeout(() => controller.abort(), 5000);
 
@@ -877,89 +779,43 @@
       if (!response.ok)
         return;
 
-      const attrs = (await response.json())?.youare?.attrs;
+      const memberships = (await response.json())?.youare?.attrs?.memberof;
 
       if (
-        !menu.isConnected ||
-        accountProfileRequest !== controller ||
-        controller.signal.aborted
+        !main.isConnected || registrationRequest !== request || controller.signal.aborted ||
+        !Array.isArray(memberships) || memberships.some((value) => typeof value !== "string")
       )
         return;
 
-      const currentName = [attrs?.displayname, attrs?.name]
-        .filter((values) => Array.isArray(values) && values.length === 1)
-        .map((values) => values[0])
-        .find((value) => typeof value === "string" && value.trim());
+      main.dataset.identityRegistrationChecked = "true";
 
-      if (currentName)
-        name.textContent = currentName;
+      if (memberships.some((value) => value.startsWith("members@"))) {
+        if (guidance) {
+          const message = document.createElement("p");
+          message.textContent = "No linked applications available";
+          guidance.replaceWith(message);
+        }
 
-      simplifyApplications(attrs?.memberof);
+        return;
+      }
+
+      if (guidance)
+        return;
+
+      const registration = document.createElement("div");
+      registration.dataset.identityRegistrationGuidance = "";
+
+      const notice = document.createElement("template");
+      notice.innerHTML = __IDENTITY_REGISTRATION_NOTICE__;
+      registration.append(notice.content.cloneNode(true));
+      placeholder.replaceWith(registration);
     } catch {
     } finally {
       clearTimeout(timeout);
 
-      if (accountProfileRequest === controller)
-        accountProfileRequest = null;
+      if (registrationRequest === request)
+        registrationRequest = null;
     }
-  }
-
-  function simplifyApplications(memberships) {
-    const main = document.querySelector("main.container-lg");
-
-    if (main?.querySelector(":scope > div > h2")?.textContent.trim() !== "Applications")
-      return;
-
-    const row = main.querySelector(":scope > .row");
-
-    for (const icon of main.querySelectorAll(
-      ":scope > .row > .col-md-3 .card img.oauth2-img#account_portal",
-    ))
-      icon.closest(".col-md-3").remove();
-
-    const guidance = main.querySelector("[data-identity-registration-guidance]");
-
-    if (main.querySelector(":scope > .row > .col-md-3")) {
-      guidance?.remove();
-
-      return;
-    }
-
-    const empty = [...main.querySelectorAll(":scope > p")].find(
-      (paragraph) => paragraph.textContent.trim() === "No linked applications available",
-    );
-    const emptyRow = row && !row.querySelector(":scope > .col-md-3") ? row : null;
-    const placeholder = empty || emptyRow || guidance;
-
-    if (!placeholder)
-      return;
-
-    const needsRegistration =
-      Array.isArray(memberships) &&
-      memberships.every((value) => typeof value === "string") &&
-      !memberships.some((value) => value.startsWith("members@"));
-
-    if (!needsRegistration) {
-      if (empty)
-        return;
-
-      const message = document.createElement("p");
-      message.textContent = "No linked applications available";
-      placeholder.replaceWith(message);
-
-      return;
-    }
-
-    if (guidance)
-      return;
-
-    const registration = document.createElement("div");
-    registration.dataset.identityRegistrationGuidance = "";
-
-    const notice = document.createElement("template");
-    notice.innerHTML = __IDENTITY_REGISTRATION_NOTICE__;
-    registration.append(notice.content.cloneNode(true));
-    placeholder.replaceWith(registration);
   }
 
   function simplifyAccountNavigation() {
@@ -988,7 +844,8 @@
     simplifyTotpSetup();
     simplifyProfile();
     simplifyAccountNavigation();
-    showAccountLinks();
+    updateAccountNavigation();
+    showRegistrationGuidance();
     shortenIdentityDisplays();
   }
 
@@ -1056,11 +913,15 @@
 
     if (event.persisted && document.querySelector("form#login"))
       location.replace("/ui/login");
-    else if (event.persisted)
-      showAccountLinks();
+    else if (event.persisted) {
+      updateAccountNavigation();
+      showRegistrationGuidance(true);
+    }
   });
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible")
-      showAccountLinks();
+    if (document.visibilityState === "visible") {
+      updateAccountNavigation();
+      showRegistrationGuidance(true);
+    }
   });
 })();
