@@ -991,6 +991,7 @@ def create_app(database: Path = DATABASE) -> Flask:
             ),
             "style.css": Path(__file__).with_name("enrollment-ui") / "style.css",
             "flow.js": Path(__file__).with_name("enrollment-ui") / "flow.js",
+            "theme.js": branding.OVERLAY / "upstream-style.js",
             "logo.png": container.ROOT / "service" / "branding" / "slugsec-logo.png",
             "background.webp": branding.BACKGROUND,
         }

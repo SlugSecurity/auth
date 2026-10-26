@@ -1,12 +1,4 @@
 (() => {
-  const scheme = window.matchMedia("(prefers-color-scheme: dark)");
-
-  const applyTheme = () => {
-    document.documentElement.dataset.bsTheme = scheme.matches ? "dark" : "light";
-  };
-
-  applyTheme();
-  scheme.addEventListener("change", applyTheme);
   document.getElementById("signoutModal")?.addEventListener("hidden.bs.modal", () => {
     document.getElementById("identity-account-menu-toggle")?.focus();
   });

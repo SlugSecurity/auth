@@ -1,6 +1,6 @@
 --- a/server/core/templates/base.html
 +++ b/server/core/templates/base.html
-@@ -2,7 +2,9 @@
+@@ -2,26 +2,29 @@
  <html lang="en">
  	<head>
  		<meta charset="utf-8" />
@@ -11,20 +11,23 @@
  		<meta name="viewport" content="width=device-width" />
  
  		<title>(% block title %)(( title )) - Kanidm(% endblock %)</title>
-@@ -12,16 +14,17 @@
+ 
+ 		(% include "base_icons.html" %)
+ 
++		<script src="/pkg/style.js?v=((crate::https::cache_buster::get_cache_buster_key()))"></script>
++
  		<link rel="stylesheet"
  			href="/pkg/external/bootstrap.min.css?v=((crate::https::cache_buster::get_cache_buster_key()))"
  			integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" />
 +		<link rel="stylesheet"
 +			href="/pkg/style.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
-+		<link rel="stylesheet"
-+			href="/pkg/override.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
 +
  		<script
  			src="/pkg/external/bootstrap.bundle.min.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
  			integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"></script>
  		<script
- 			src="/pkg/style.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
+-			src="/pkg/style.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
++			src="/pkg/interface.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
  			defer></script>
 -		<link rel="stylesheet"
 -			href="/pkg/style.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
@@ -46,14 +49,17 @@
  		<meta name="viewport" content="width=device-width" />
  		<!-- https://htmx.org/docs/#response-handling -->
  		<meta name="htmx-config" content='{
-@@ -20,19 +22,20 @@
+@@ -17,22 +19,23 @@
+ 
+ 		(% include "base_icons.html" %)
+ 
++		<script src="/pkg/style.js?v=((crate::https::cache_buster::get_cache_buster_key()))"></script>
++
  		<link rel="stylesheet"
  			href="/pkg/external/bootstrap.min.css?v=((crate::https::cache_buster::get_cache_buster_key()))"
  			integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" />
 +		<link rel="stylesheet"
 +			href="/pkg/style.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
-+		<link rel="stylesheet"
-+			href="/pkg/override.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
 +
  		<script
  			src="/pkg/external/bootstrap.bundle.min.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
@@ -63,7 +69,8 @@
 -			integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"></script>
 +			integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2" defer></script>
  		<script
- 			src="/pkg/style.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
+-			src="/pkg/style.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
++			src="/pkg/interface.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
  			defer></script>
 -		<link rel="stylesheet"
 -			href="/pkg/style.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />

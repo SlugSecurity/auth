@@ -10,6 +10,11 @@ let
   credentialPatch = ../service/branding/kanidm-1.11.2/credential-conflict.patch;
   pageLoadPatch = ../service/branding/kanidm-1.11.2/page-load.patch;
   usageEventsPatch = ../service/branding/kanidm-1.11.2/usage-events.patch;
+  themeScript = ../service/branding/kanidm-1.11.2/upstream-style.js;
+  genericUiVersion = builtins.hashString "sha256" (
+    builtins.readFile pageLoadPatch + builtins.readFile themeScript
+  );
+  interfaceScript = "<script\n\t\t\tsrc=\"/pkg/interface.js?v=((crate::https::cache_buster::get_cache_buster_key()))\"\n\t\t\tdefer></script>";
 
   package = pkgs.kanidm_1_11.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [
@@ -30,6 +35,14 @@ let
       + ''
         substituteInPlace server/core/templates/navbar.html \
           --replace-fail '__IDENTITY_PORTAL_URL__' ${pkgs.lib.escapeShellArg portalUrl}
+      ''
+      + pkgs.lib.optionalString (uiVersion == null) ''
+        cp ${themeScript} server/core/static/style.js
+        substituteInPlace server/core/templates/base.html server/core/templates/base_htmx.html \
+          --replace-fail ${pkgs.lib.escapeShellArg interfaceScript} ""
+        substituteInPlace server/core/src/https/cache_buster.rs \
+          --replace-fail 'option_env!("KANIDM_PKG_VERSION_HASH")' \
+          ${pkgs.lib.escapeShellArg "Some(\"${genericUiVersion}\")"}
       ''
       + pkgs.lib.optionalString (uiVersion != null) ''
         substituteInPlace server/core/src/https/cache_buster.rs \

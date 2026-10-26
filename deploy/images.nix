@@ -29,10 +29,10 @@ let
     "kani-waving.svg"
   ];
 
-  script = pkgs.runCommand "identity-native-ui.js" { } ''
+  script = pkgs.runCommand "identity-native-interface.js" { } ''
     mkdir -p branding/kanidm-1.11.2 enrollment-ui
     cp ${../service/branding_config.py} branding_config.py
-    cp ${assets}/upstream-style.js ${assets}/enrollment-notice.js branding/kanidm-1.11.2/
+    cp ${assets}/enrollment-notice.js branding/kanidm-1.11.2/
     cp ${../service/enrollment-ui/registration-notice.html} enrollment-ui/registration-notice.html
     ${pkgs.buildPackages.python3}/bin/python branding_config.py \
       ${pkgs.lib.escapeShellArg portalUrl} auth.slugsec.club > "$out"
@@ -62,7 +62,8 @@ let
       ln -s ${native.package}/bin/kanidmd sbin/kanidmd
       cp -r ${native.package}/ui/hpkg hpkg
       chmod -R u+w hpkg
-      cp ${script} hpkg/style.js
+      cp ${assets}/upstream-style.js hpkg/style.js
+      cp ${script} hpkg/interface.js
       cat ${native.package}/ui/hpkg/style.css \
         ${../service/enrollment-ui/style.css} > hpkg/style.css
       : > hpkg/override.css

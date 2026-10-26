@@ -19,7 +19,8 @@ def native_script(portal_url: str, identity_domain: str) -> bytes:
     overlay = overlay.replace("__IDENTITY_PORTAL_URL__", json.dumps(portal_url))
     overlay = overlay.replace("__IDENTITY_DOMAIN__", json.dumps(identity_domain))
     overlay = overlay.replace("__IDENTITY_REGISTRATION_NOTICE__", json.dumps(notice))
-    return (OVERLAY / "upstream-style.js").read_bytes() + b"\n" + overlay.encode()
+
+    return overlay.encode()
 
 
 def branding_hash() -> str:

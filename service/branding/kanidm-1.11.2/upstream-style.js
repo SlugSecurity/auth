@@ -6,7 +6,7 @@ function getPreferredTheme() {
 
 function updateColourScheme() {
   const theme = getPreferredTheme();
-  console.debug(`updateColourScheme theme->${theme}`);
+
   document.documentElement.setAttribute("data-bs-theme", theme);
 }
 
@@ -17,4 +17,4 @@ window
 window
   .matchMedia("(prefers-color-scheme: dark)")
   .addEventListener("change", updateColourScheme);
-document.body.addEventListener("htmx:afterOnLoad", updateColourScheme);
+document.addEventListener("htmx:afterOnLoad", updateColourScheme);
