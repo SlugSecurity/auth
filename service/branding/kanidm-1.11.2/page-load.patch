@@ -11,15 +11,28 @@
  		<meta name="viewport" content="width=device-width" />
  
  		<title>(% block title %)(( title )) - Kanidm(% endblock %)</title>
-@@ -14,7 +16,7 @@
+@@ -12,16 +14,17 @@
+ 		<link rel="stylesheet"
+ 			href="/pkg/external/bootstrap.min.css?v=((crate::https::cache_buster::get_cache_buster_key()))"
  			integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" />
++		<link rel="stylesheet"
++			href="/pkg/style.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
++		<link rel="stylesheet"
++			href="/pkg/override.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
++
  		<script
  			src="/pkg/external/bootstrap.bundle.min.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
--			integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"></script>
-+			integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" defer></script>
+ 			integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"></script>
  		<script
  			src="/pkg/style.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
  			defer></script>
+-		<link rel="stylesheet"
+-			href="/pkg/style.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
+-		<link rel="stylesheet"
+-			href="/pkg/override.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
+ 
+ 		(% block head %)(% endblock %)
+ 	</head>
 --- a/server/core/templates/base_htmx.html
 +++ b/server/core/templates/base_htmx.html
 @@ -2,7 +2,9 @@
@@ -33,12 +46,18 @@
  		<meta name="viewport" content="width=device-width" />
  		<!-- https://htmx.org/docs/#response-handling -->
  		<meta name="htmx-config" content='{
-@@ -22,10 +24,10 @@
+@@ -20,19 +22,20 @@
+ 		<link rel="stylesheet"
+ 			href="/pkg/external/bootstrap.min.css?v=((crate::https::cache_buster::get_cache_buster_key()))"
  			integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" />
++		<link rel="stylesheet"
++			href="/pkg/style.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
++		<link rel="stylesheet"
++			href="/pkg/override.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
++
  		<script
  			src="/pkg/external/bootstrap.bundle.min.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
--			integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"></script>
-+			integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" defer></script>
+ 			integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"></script>
  		<script
  			src="/pkg/external/htmx.min.1.9.12.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
 -			integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"></script>
@@ -46,6 +65,13 @@
  		<script
  			src="/pkg/style.js?v=((crate::https::cache_buster::get_cache_buster_key()))"
  			defer></script>
+-		<link rel="stylesheet"
+-			href="/pkg/style.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
+-		<link rel="stylesheet"
+-			href="/pkg/override.css?v=((crate::https::cache_buster::get_cache_buster_key()))" />
+ 
+ 		(% block head %)(% endblock %)
+ 	</head>
 --- a/server/core/templates/user_settings.html
 +++ b/server/core/templates/user_settings.html
 @@ -3,8 +3,8 @@
@@ -59,3 +85,22 @@
  (% endblock %)
  
  (% block main %)
+--- a/server/core/src/https/views/apps.rs
++++ b/server/core/src/https/views/apps.rs
+@@ -38,11 +38,15 @@
+     // Because this is the route where the login page can land, we need to actually alter
+     // our response as a result. If the user comes here directly we need to render the full
+     // page, otherwise we need to render the partial.
+-    let app_links = state
++    let mut app_links = state
+         .qe_r_ref
+         .handle_list_applinks(client_auth_info.clone(), kopid.eventid)
+         .await
+         .map_err(|old| HtmxError::new(&kopid, old, domain_info.clone()))?;
++
++    app_links
++        .retain(|app| !matches!(app, AppLink::Oauth2 { name, .. } if name == "account_portal"));
++
+     let uat: &UserAuthToken = client_auth_info
+         .pre_validated_uat()
+         .map_err(|op_err| HtmxError::new(&kopid, op_err, domain_info.clone()))?;

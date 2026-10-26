@@ -1,6 +1,9 @@
 { pkgs }:
 let
-  native = import ../nix/kanidm-consent.nix { inherit pkgs; };
+  native = import ../nix/kanidm-consent.nix {
+    inherit pkgs;
+    uiVersion = brandingHash;
+  };
 
   python = pkgs.python3.withPackages (p: [
     p.flask
@@ -39,6 +42,7 @@ let
     + builtins.readFile ../service/enrollment-ui/registration-notice.html
     + builtins.readFile ../service/branding_config.py
     + builtins.readFile ../service/enrollment-ui/style.css
+    + builtins.readFile (assets + "/page-load.patch")
     + pkgs.lib.concatMapStrings (path: builtins.hashFile "sha256" path) (
       [
         ../service/branding/background.webp
@@ -57,7 +61,9 @@ let
       cp -r ${native.package}/ui/hpkg hpkg
       chmod -R u+w hpkg
       cp ${script} hpkg/style.js
-      cp ${../service/enrollment-ui/style.css} hpkg/override.css
+      cat ${native.package}/ui/hpkg/style.css \
+        ${../service/enrollment-ui/style.css} > hpkg/style.css
+      : > hpkg/override.css
       cp ${../service/branding/background.webp} hpkg/background.webp
       for name in ${pkgs.lib.escapeShellArgs nativeImageNames}; do
         cp ${assets}/"$name" hpkg/img/"$name"

@@ -29,6 +29,7 @@ def branding_hash() -> str:
         UI / "registration-notice.html",
         Path(__file__),
         UI / "style.css",
+        OVERLAY / "page-load.patch",
     )
     content = b"".join(path.read_bytes() for path in sources)
     images = (

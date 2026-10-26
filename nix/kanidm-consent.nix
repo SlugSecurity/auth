@@ -1,6 +1,7 @@
 {
   pkgs,
   container ? true,
+  uiVersion ? null,
 }:
 assert pkgs.kanidm_1_11.version == "1.11.2";
 let
@@ -23,7 +24,13 @@ let
         KANIDM_BUILD_PROFILE = "container_generic";
       };
 
-    postPatch = if container then "" else old.postPatch;
+    postPatch =
+      (if container then "" else old.postPatch)
+      + pkgs.lib.optionalString (uiVersion != null) ''
+        substituteInPlace server/core/src/https/cache_buster.rs \
+          --replace-fail 'option_env!("KANIDM_PKG_VERSION_HASH")' \
+          ${pkgs.lib.escapeShellArg "Some(\"${uiVersion}\")"}
+      '';
     cargoBuildFlags = [
       "--package"
       "daemon"
