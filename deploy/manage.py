@@ -2,9 +2,11 @@
 
 import argparse
 import fcntl
+import grp
 import hashlib
 import json
 import os
+import pwd
 import re
 import stat
 import subprocess
@@ -12,7 +14,7 @@ import sys
 import tempfile
 import time
 import uuid
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
@@ -379,6 +381,7 @@ def validate(config: Mapping[str, str], deadline: float | None = None) -> None:
         )
         validate_image(inspected[0], kind)
 
+    metrics_group()
     directory = Path(config["IDENTITY_CONFIG_DIR"])
 
     for key in (
@@ -487,8 +490,43 @@ def validate(config: Mapping[str, str], deadline: float | None = None) -> None:
     )
 
 
+def metrics_group(*, create: bool = False) -> None:
+    require(
+        not any(account.pw_gid == 10005 for account in pwd.getpwall()),
+        "Metrics group ID is already assigned to a host account",
+    )
+    groups: list[grp.struct_group] = []
+
+    lookups: tuple[Callable[[], grp.struct_group], ...] = (
+        lambda: grp.getgrnam("identity-metrics"),
+        lambda: grp.getgrgid(10005),
+    )
+
+    for lookup in lookups:
+        with suppress(KeyError):
+            groups.append(lookup())
+
+    if not groups:
+        require(create, "Metrics system group is missing, run deployment prepare")
+        command("groupadd", "--system", "--gid", "10005", "identity-metrics")
+        metrics_group()
+        return
+
+    require(
+        len(groups) == 2
+        and all(
+            group.gr_name == "identity-metrics"
+            and group.gr_gid == 10005
+            and not group.gr_mem
+            for group in groups
+        ),
+        "Metrics system group conflicts with an existing group or host members",
+    )
+
+
 def prepare(config: Mapping[str, str]) -> None:
     require(os.geteuid() == 0, "Production preparation requires a root operator")
+    metrics_group(create=True)
 
     for key, uid, gid, mode in (
         ("IDENTITY_KANIDM_DATA_DIR", 10001, 10001, 0o700),
