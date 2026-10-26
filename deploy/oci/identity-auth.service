@@ -12,7 +12,7 @@ RemainAfterExit=yes
 
 WorkingDirectory=/opt/auth
 
-ExecStart=/usr/bin/python3 /opt/auth/deploy/manage.py up --env /etc/identity/deployment.env
+ExecStart=/usr/bin/python3 /opt/auth/deploy/manage.py private-stage --env /etc/identity/deployment.env
 ExecStop=/usr/bin/docker compose --env-file /etc/identity/deployment.env --file /opt/auth/deploy/oci/compose.yaml stop
 
 TimeoutStartSec=120
