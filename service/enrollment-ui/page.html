@@ -15,7 +15,7 @@
     <meta name="color-scheme" content="light dark">
     <meta name="referrer" content="same-origin">
 
-    <title>{% if account_page %}{{ account_titles[page] }}{% elif page == 'error' %}Account error{% elif page == 'recover' or recovery %}Recover your account{% elif page == 'setup' %}Set up your account{% else %}Create an account{% endif %} · {{ auth_title }}</title>
+    <title>{% if account_page %}{{ account_titles[page] }}{% elif page == 'existing_account' %}Existing account{% elif page == 'error' %}Account error{% elif page == 'recover' or recovery %}Recover your account{% elif page == 'setup' %}Set up your account{% else %}Create an account{% endif %} · {{ auth_title }}</title>
 
     <link rel="icon" href="/assets/logo.png" type="image/png">
     <script src="/assets/theme.js"></script>
@@ -979,6 +979,21 @@
             <div class="auth-actions">
               <a class="btn btn-secondary" href="{{ auth_login_url }}">Back to login</a>
             </div>
+          </div>
+
+        {% elif page == 'existing_account' %}
+          <h1 class="h2">You already have an account</h1>
+
+          <dl class="profile-details">
+            <div>
+              <dt>Username</dt>
+              <dd>{{ applicant.username }}</dd>
+            </div>
+          </dl>
+
+          <div class="auth-actions">
+            <a class="btn btn-primary" href="{{ auth_login_url }}">Sign in</a>
+            <a class="btn btn-secondary" href="/recover">Recover account</a>
           </div>
 
         {% elif page == 'recover' %}

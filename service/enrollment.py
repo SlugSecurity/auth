@@ -1009,6 +1009,22 @@ def create_app(database: Path = DATABASE) -> Flask:
     def join() -> str:
         return page("join")
 
+    @app.get("/join/existing")
+    def existing_account() -> RouteResult:
+        application = owned_enrollment()
+
+        if application["status"] in (
+            "creating",
+            "setup_required",
+            "provisioning_error",
+        ):
+            return redirect("/setup")
+
+        if application["status"] != "active":
+            return redirect(container.URL + "/ui/login")
+
+        return page("existing_account", application=application)
+
     @app.get("/join/profile")
     def join_profile() -> RouteResult:
         session = current_session()
@@ -1160,12 +1176,14 @@ def create_app(database: Path = DATABASE) -> Flask:
         if existing:
             session["application_id"] = existing["id"]
             session.pop("identity", None)
-            return redirect(
-                "/setup"
-                if existing["status"]
-                in ("creating", "setup_required", "provisioning_error")
-                else container.URL + "/ui/login"
-            )
+
+            if unfinished:
+                return redirect("/setup")
+
+            if existing["status"] == "active":
+                return redirect("/join/existing")
+
+            return redirect(container.URL + "/ui/login")
 
         session["identity"] = identity
         session["identity_verified_at"] = time.time()
