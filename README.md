@@ -12,7 +12,7 @@ kanidm login
 kanidm reauth
 
 kanidm person create guest_example "Example Guest"
-kanidm person update guest_example --displayname "Updated Name" --mail guest@example.org
+kanidm person update guest_example --displayname "Updated Name" --mail slugsec-infra-group@ucsc.edu
 kanidm person credential create-reset-token guest_example --ttl 600
 
 kanidm group create example_users idm_admin
