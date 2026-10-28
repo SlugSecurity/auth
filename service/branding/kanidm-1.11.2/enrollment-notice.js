@@ -2,6 +2,7 @@
   const portalUrl = __IDENTITY_PORTAL_URL__;
   const recoveryUrl = portalUrl + "/recover";
   const identityDomain = __IDENTITY_DOMAIN__.toLowerCase();
+  const privateDomain = "internal.slugsec.club";
   const identityDisplays = new WeakMap();
   let credentialsSaved = false;
 
@@ -738,6 +739,54 @@
     }
   }
 
+  function isPrivateApplication(href) {
+    try {
+      const url = new URL(href);
+      const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
+
+      return url.protocol === "https:" && (
+        hostname === privateDomain || hostname.endsWith("." + privateDomain)
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  function showApplicationAccess() {
+    for (const card of document.querySelectorAll("main.container-lg > .row > .col-md-3 > .card")) {
+      const link = card.querySelector(":scope > a[href]");
+      const icon = link?.querySelector("img.oauth2-img[id]");
+      const needsVpn = link && icon && isPrivateApplication(link.href);
+      let badge = card.querySelector(":scope > .identity-app-access");
+
+      if (!needsVpn && !badge)
+        continue;
+
+      const descriptions = new Set((link?.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean));
+
+      if (badge)
+        descriptions.delete(badge.id);
+
+      if (needsVpn) {
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.className = "badge rounded-pill identity-app-access";
+          badge.id = "identity-app-access-" + icon.id;
+          badge.textContent = "VPN only";
+          card.append(badge);
+        }
+
+        descriptions.add(badge.id);
+      } else
+        badge.remove();
+
+      if (descriptions.size)
+        link?.setAttribute("aria-describedby", [...descriptions].join(" "));
+      else
+        link?.removeAttribute("aria-describedby");
+    }
+  }
+
   let registrationRequest;
 
   async function showRegistrationGuidance(force = false) {
@@ -845,6 +894,7 @@
     simplifyProfile();
     simplifyAccountNavigation();
     updateAccountNavigation();
+    showApplicationAccess();
     showRegistrationGuidance();
     shortenIdentityDisplays();
   }
