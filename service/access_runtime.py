@@ -518,26 +518,11 @@ def bootstrap() -> JSONObject:
             raise access.AccessUnavailable("controller_has_unexpected_privilege")
 
         config = load(CONFIG) if CONFIG.exists() else {}
-        existing_policies: dict[str, JSONObject] = {}
+        teams = configuration()[0]["policies"] if config else []
 
-        for item in json_array(config.get("policies", [])):
-            entry = json_object(item)
-            include_leads = entry.setdefault("include_leads", False)
-
-            if type(include_leads) is not bool:
-                raise access.AccessUnavailable("access_configuration_invalid")
-
-            existing_policies[json_string(entry["group_uuid"])] = entry
-
-        teams: list[PolicyConfig] = []
-
-        for group, leads, title in (("team_ctf", "team_ctf_leads", "CTF"),):
-            if not container.entry_exists("group", leads):
-                container.cli("group", "create", leads, "idm_admin")
-
-            if not container.entry_exists("group", group):
-                container.cli("group", "create", group, WORKERS)
-            team, lead = _attrs("group", group), _attrs("group", leads)
+        for policy in teams:
+            team = _attrs("group", policy["group_uuid"])
+            lead = _attrs("group", policy["leads_group_uuid"])
 
             if team is None or lead is None:
                 raise access.AccessUnavailable("bootstrap_native_identity_missing")
@@ -549,23 +534,6 @@ def bootstrap() -> JSONObject:
 
             if team.get("entry_managed_by") != [f"{WORKERS}@{container.DOMAIN}"]:
                 raise access.AccessUnavailable("existing_team_manager_requires_review")
-
-            include_leads = existing_policies.get(team["uuid"][0], {}).get(
-                "include_leads", True
-            )
-
-            if type(include_leads) is not bool:
-                raise access.AccessUnavailable("access_configuration_invalid")
-
-            teams.append(
-                {
-                    "group_uuid": team["uuid"][0],
-                    "leads_group_uuid": lead["uuid"][0],
-                    "name": title,
-                    "max_days": 365,
-                    "include_leads": include_leads,
-                }
-            )
 
         admission = _attrs("group", enrollment_kanidm.ADMISSION[0])
 
