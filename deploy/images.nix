@@ -154,7 +154,6 @@ let
     "deploy/manage.py"
     "deploy/runtime.py"
     "deploy/oci/compose.yaml"
-    "deploy/oci/cloudflared.yaml"
     "deploy/oci/runtime.json"
     "deploy/oci/server.toml"
   ]

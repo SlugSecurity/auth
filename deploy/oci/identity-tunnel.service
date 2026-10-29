@@ -1,6 +1,5 @@
 [Unit]
-BindsTo=identity-auth.service
-After=identity-auth.service network-online.target
+After=network-online.target
 Wants=network-online.target
 
 [Service]
@@ -10,7 +9,7 @@ User=root
 EnvironmentFile=/etc/identity/deployment.env
 Environment=PATH=/usr/sbin:/usr/bin:/sbin:/bin
 
-ExecStart=/usr/bin/cloudflared --no-autoupdate --config ${IDENTITY_CONFIG_DIR}/cloudflared.yaml tunnel run --disable-path-normalization=false --credentials-file ${IDENTITY_TUNNEL_CREDENTIALS} ${IDENTITY_TUNNEL_ID}
+ExecStart=/usr/bin/cloudflared --no-autoupdate tunnel --metrics 127.0.0.1:0 run --disable-path-normalization=false --token-file ${IDENTITY_TUNNEL_TOKEN_FILE}
 
 Restart=on-failure
 RestartSec=5s

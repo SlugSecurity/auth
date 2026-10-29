@@ -1427,7 +1427,7 @@ def production_plan(
                 private_path(settings["IDENTITY_OPERATOR_CREDENTIALS"])
             ),
             "backend-ca.key": str(private_path(settings["IDENTITY_BACKEND_CA_KEY"])),
-            "tunnel.json": str(private_path(settings["IDENTITY_TUNNEL_CREDENTIALS"])),
+            "tunnel.token": str(private_path(settings["IDENTITY_TUNNEL_TOKEN_FILE"])),
             "deployment.env": str(private_path(environment)),
         },
         "native": {

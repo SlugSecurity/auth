@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import base64
 import fcntl
 import grp
 import hashlib
@@ -27,7 +28,7 @@ else:
 import certificates
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "service"))
-from contracts import json_array, json_object
+from contracts import json_array, json_object, json_string
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPOSE = ROOT / "deploy/oci/compose.yaml"
@@ -41,7 +42,7 @@ PATH_KEYS = (
     "IDENTITY_GOOGLE_CLIENT",
     "IDENTITY_OPERATOR_CREDENTIALS",
     "IDENTITY_BACKEND_CA_KEY",
-    "IDENTITY_TUNNEL_CREDENTIALS",
+    "IDENTITY_TUNNEL_TOKEN_FILE",
     "IDENTITY_POSIX_STATE_DIR",
     "IDENTITY_POSIX_STATUS_DIR",
     "IDENTITY_BACKUP_STATUS_DIR",
@@ -62,18 +63,6 @@ class Arguments(argparse.Namespace):
 def require(value: object, message: str) -> None:
     if not value:
         raise RuntimeError(message)
-
-
-def config_bytes(config: Mapping[str, str], filename: str) -> bytes:
-    source = (ROOT / "deploy/oci" / filename).read_text()
-
-    if filename == "cloudflared.yaml":
-        source = source.replace(
-            "__BACKEND_CA__",
-            json.dumps(str(Path(config["IDENTITY_PKI_DIR"]) / "ca.pem")),
-        )
-
-    return source.encode()
 
 
 def environment(path: str | Path) -> dict[str, str]:
@@ -356,6 +345,23 @@ def validate_image(value: object, kind: str, architecture: str = "arm64") -> Non
         )
 
 
+def validate_tunnel_token(config: Mapping[str, str]) -> None:
+    token = Path(config["IDENTITY_TUNNEL_TOKEN_FILE"]).read_bytes().strip()
+    tunnel = json_object(json.loads(base64.b64decode(token, validate=True)))
+    account = json_string(tunnel.get("a"))
+    secret = json_string(tunnel.get("s"))
+
+    require(
+        tunnel.get("t") == config["IDENTITY_TUNNEL_ID"]
+        and re.fullmatch(r"[a-f0-9]{32}", account),
+        "Tunnel token does not match the configured connector",
+    )
+    require(
+        len(base64.b64decode(secret, validate=True)) >= 32,
+        "Tunnel token secret is invalid",
+    )
+
+
 def validate(config: Mapping[str, str], deadline: float | None = None) -> None:
     for key, kind in zip(IMAGE_KEYS, ("kanidm", "portal"), strict=True):
         require(
@@ -392,20 +398,16 @@ def validate(config: Mapping[str, str], deadline: float | None = None) -> None:
     ):
         require_root_path(Path(config[key]), directory=True)
 
-    for filename in ("server.toml", "runtime.json", "cloudflared.yaml"):
+    for filename in ("server.toml", "runtime.json"):
         require_root_path(directory / filename)
 
-    require(
-        (directory / "cloudflared.yaml").read_bytes()
-        == config_bytes(config, "cloudflared.yaml"),
-        "Tunnel ingress does not match the reviewed origins and private route exclusions",
-    )
+    require_root_path(Path(config["IDENTITY_PKI_DIR"]) / "ca.pem")
 
     for key, mode, gid in (
         ("IDENTITY_GOOGLE_CLIENT", 0o640, 10002),
         ("IDENTITY_OPERATOR_CREDENTIALS", 0o600, None),
         ("IDENTITY_BACKEND_CA_KEY", 0o600, None),
-        ("IDENTITY_TUNNEL_CREDENTIALS", 0o600, None),
+        ("IDENTITY_TUNNEL_TOKEN_FILE", 0o600, None),
     ):
         require_root_path(Path(config[key]), mode=mode, gid=gid)
 
@@ -431,26 +433,7 @@ def validate(config: Mapping[str, str], deadline: float | None = None) -> None:
             Path(config[key]).exists(), "A required private deployment path is missing"
         )
 
-    tunnel = json_object(
-        json.loads(Path(config["IDENTITY_TUNNEL_CREDENTIALS"]).read_text())
-    )
-    require(
-        tunnel.get("TunnelID") == config["IDENTITY_TUNNEL_ID"]
-        and all(
-            isinstance(tunnel.get(key), str) and tunnel[key]
-            for key in ("AccountTag", "TunnelSecret")
-        ),
-        "Tunnel credentials do not match the configured connector",
-    )
-    command(
-        "cloudflared",
-        "tunnel",
-        "--config",
-        str(directory / "cloudflared.yaml"),
-        "ingress",
-        "validate",
-        timeout=remaining_timeout(deadline) if deadline is not None else 15,
-    )
+    validate_tunnel_token(config)
     client = json_object(
         json_object(json.loads(Path(config["IDENTITY_GOOGLE_CLIENT"]).read_text())).get(
             "web", {}
@@ -556,10 +539,10 @@ def prepare(config: Mapping[str, str]) -> None:
     require_root_path(directory, directory=True, missing=True)
     directory.mkdir(parents=True, exist_ok=True, mode=0o755)
 
-    for filename in ("server.toml", "runtime.json", "cloudflared.yaml"):
+    for filename in ("server.toml", "runtime.json"):
         target = directory / filename
         require_root_path(target, missing=True)
-        expected = config_bytes(config, filename)
+        expected = (ROOT / "deploy/oci" / filename).read_bytes()
         require(
             not target.exists() or target.read_bytes() == expected,
             "Existing deployment config differs, review before replacing it",
