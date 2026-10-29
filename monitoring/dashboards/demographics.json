@@ -2370,11 +2370,7 @@
     ],
     "liveNow": false,
     "preload": false,
-    "tags": [
-      "kanidm",
-      "membership",
-      "demographics"
-    ],
+    "tags": [],
     "timeSettings": {
       "autoRefresh": "5m",
       "autoRefreshIntervals": [

@@ -2147,11 +2147,7 @@
     ],
     "liveNow": false,
     "preload": false,
-    "tags": [
-      "kanidm",
-      "identity",
-      "health"
-    ],
+    "tags": [],
     "timeSettings": {
       "autoRefresh": "30s",
       "autoRefreshIntervals": [

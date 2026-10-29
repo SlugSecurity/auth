@@ -868,10 +868,7 @@
     "links": [],
     "liveNow": false,
     "preload": false,
-    "tags": [
-      "kanidm",
-      "membership"
-    ],
+    "tags": [],
     "timeSettings": {
       "timezone": "America/Los_Angeles",
       "from": "now-1h",

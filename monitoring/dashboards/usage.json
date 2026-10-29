@@ -1271,10 +1271,7 @@
     ],
     "liveNow": false,
     "preload": false,
-    "tags": [
-      "kanidm",
-      "usage"
-    ],
+    "tags": [],
     "timeSettings": {
       "autoRefresh": "1m",
       "autoRefreshIntervals": [
