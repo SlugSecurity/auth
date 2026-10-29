@@ -1032,14 +1032,22 @@ main.container-lg > .row > .col-md-3:has(.card img.oauth2-img#account_portal) {
   display: none;
 }
 
+main.container-lg > .row > .col-md-3 > .card:has(img.oauth2-img) {
+  position: relative;
+  padding: 1rem;
+}
+
 .identity-app-access {
-  align-self: center;
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
   max-width: calc(100% - 1rem);
-  margin: 0.4rem 0 0.75rem;
   color: var(--bs-body-color);
   background: var(--bs-secondary-bg);
   border: 1px solid var(--bs-border-color);
-  white-space: normal;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .identity-account-navbar > .container-lg {
