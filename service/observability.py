@@ -364,11 +364,18 @@ def directory_dashboard(
         person_logins = activity.get(identifier) if activity is not None else None
         first_label = "Unavailable" if first is None else "Not recorded"
         last_label = "Unavailable" if activity is None else "No recorded sign ins"
+        checked_at = person.get("checked_at")
 
         profile = [
             ("Name", person["name"] or "Not provided"),
             ("Preferred name", registration.get("preferred_name") or missing),
             ("Email", person["email"] or "Not provided"),
+            ("Password MFA", person.get("password_mfa", "Unknown")),
+            ("Passkeys", str(person.get("passkeys", "Unknown"))),
+            (
+                "Credentials checked",
+                _display_time(checked_at) if checked_at else "Unknown",
+            ),
             ("T shirt size", registration.get("shirt_size") or missing),
             ("Major", registration.get("studies") or missing),
             ("First registered", _display_time(first_at) if first_at else first_label),

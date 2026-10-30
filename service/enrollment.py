@@ -462,6 +462,7 @@ def create_app(database: Path = DATABASE) -> Flask:
             abort(404)
 
     membership_store = membership.MembershipStore(database)
+    credential_cache = directory.CredentialCache()
     readiness_lock = threading.Lock()
     readiness_cache: ReadinessCache = {"at": 0.0, "snapshot": None}
 
@@ -1498,7 +1499,11 @@ def create_app(database: Path = DATABASE) -> Flask:
 
         try:
             operations.authorize_registration_export(authorization[7:])
-            return jsonify(directory.snapshot(access_runtime.controller().backend))
+            return jsonify(
+                directory.snapshot(
+                    access_runtime.controller().backend, credentials=credential_cache
+                )
+            )
         except operations.SAFE_FAILURES:
             abort(403)
 

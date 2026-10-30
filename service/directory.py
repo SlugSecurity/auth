@@ -1,10 +1,37 @@
+import math
+import threading
 import time
 import uuid
-from datetime import datetime
-from typing import Literal, TypedDict
+from collections.abc import Callable
+from contextlib import suppress
+from datetime import UTC, datetime
+from http.client import HTTPException
+from typing import Literal, NotRequired, TypedDict, cast
 
 import access
-from contracts import NativeAttrs, json_array, json_object, json_string
+from contracts import (
+    NativeAttrs,
+    is_list,
+    is_object_dict,
+    is_str_list,
+    json_array,
+    json_object,
+    json_string,
+)
+
+type PasswordMfa = Literal["Enabled", "Not configured", "Unknown"]
+
+
+class CredentialSummary(TypedDict):
+    password_mfa: PasswordMfa
+    passkeys: int | Literal["Unknown"]
+    checked_at: str | None
+
+
+class _Credential(TypedDict):
+    password_mfa: PasswordMfa
+    at: float
+    fingerprint: tuple[tuple[str, ...], ...]
 
 
 class Person(TypedDict):
@@ -13,6 +40,9 @@ class Person(TypedDict):
     name: str
     email: str
     account: Literal["Active", "Expired", "Not yet valid"]
+    password_mfa: NotRequired[PasswordMfa]
+    passkeys: NotRequired[int | Literal["Unknown"]]
+    checked_at: NotRequired[str | None]
 
 
 class Group(TypedDict):
@@ -32,6 +62,154 @@ class Snapshot(TypedDict):
     people: list[Person]
     groups: list[Group]
     memberships: list[Membership]
+
+
+def _password_mfa(value: object) -> PasswordMfa:
+    if not is_object_dict(value):
+        return "Unknown"
+
+    credentials = value.get("creds")
+
+    if not is_list(credentials) or len(credentials) != 1:
+        return "Unknown"
+
+    credential = credentials[0]
+
+    if not is_object_dict(credential):
+        return "Unknown"
+
+    try:
+        access.canonical_uuid(credential.get("uuid"))
+    except access.AccessDenied:
+        return "Unknown"
+
+    kind = credential.get("type_")
+
+    if kind in ("Password", "GeneratedPassword"):
+        return "Not configured"
+
+    if not is_object_dict(kind) or set(kind) != {"PasswordMfa"}:
+        return "Unknown"
+
+    factors = kind["PasswordMfa"]
+
+    if (
+        not is_list(factors)
+        or len(factors) != 3
+        or not is_str_list(factors[0])
+        or not is_str_list(factors[1])
+        or type(factors[2]) is not int
+        or factors[2] < 0
+    ):
+        return "Unknown"
+
+    return "Enabled" if factors[0] or factors[1] else "Not configured"
+
+
+class CredentialCache:
+    def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
+        self.clock = clock
+        self.lock = threading.Lock()
+        self.entries: dict[str, _Credential] = {}
+        self.refreshed_at: float | None = None
+        self.wall_at: float | None = None
+
+    def summaries(
+        self, backend: access.Directory, people: dict[str, NativeAttrs], now: float
+    ) -> dict[str, CredentialSummary]:
+        with self.lock:
+            tick = self.clock()
+
+            if not math.isfinite(now) or not math.isfinite(tick):
+                self.entries.clear()
+                return {
+                    identifier: {
+                        "password_mfa": "Unknown",
+                        "passkeys": "Unknown",
+                        "checked_at": None,
+                    }
+                    for identifier in people
+                }
+
+            if self.wall_at is not None and now < self.wall_at:
+                self.entries.clear()
+
+            if self.refreshed_at is not None and tick < self.refreshed_at:
+                self.entries.clear()
+                self.refreshed_at = tick
+
+            self.wall_at = now
+            self.entries = {
+                identifier: entry
+                for identifier, entry in self.entries.items()
+                if identifier in people
+            }
+            fingerprints = {
+                identifier: tuple(
+                    tuple(attrs.get(field, []))
+                    for field in (
+                        "primary_credential",
+                        "passkeys",
+                        "attested_passkeys",
+                    )
+                )
+                for identifier, attrs in people.items()
+            }
+
+            for identifier, cached in self.entries.items():
+                if (
+                    fingerprints[identifier] != cached["fingerprint"]
+                    or now - cached["at"] > 600
+                ):
+                    cached["password_mfa"] = "Unknown"
+
+            if people and (self.refreshed_at is None or tick - self.refreshed_at >= 15):
+                identifier = min(
+                    people,
+                    key=lambda identifier: (
+                        self.entries[identifier]["at"]
+                        if identifier in self.entries
+                        else -math.inf,
+                        identifier,
+                    ),
+                )
+                self.refreshed_at = tick
+                password_mfa: PasswordMfa = "Unknown"
+
+                with suppress(
+                    RuntimeError, OSError, ValueError, TypeError, HTTPException
+                ):
+                    password_mfa = _password_mfa(backend.credential_status(identifier))
+
+                self.entries[identifier] = {
+                    "password_mfa": password_mfa,
+                    "at": now,
+                    "fingerprint": fingerprints[identifier],
+                }
+
+            result: dict[str, CredentialSummary] = {}
+
+            for identifier, attrs in people.items():
+                entry = self.entries.get(identifier)
+                fresh = (
+                    entry is not None
+                    and entry["fingerprint"] == fingerprints[identifier]
+                    and 0 <= now - entry["at"] <= 600
+                )
+                count = len(attrs.get("passkeys", [])) + len(
+                    attrs.get("attested_passkeys", [])
+                )
+                result[identifier] = {
+                    "password_mfa": entry["password_mfa"]
+                    if entry is not None and fresh
+                    else "Unknown",
+                    "passkeys": count if count else "Unknown",
+                    "checked_at": datetime.fromtimestamp(entry["at"], UTC).isoformat()
+                    if entry is not None and fresh
+                    else None,
+                }
+
+            return result
 
 
 def read_snapshot(value: object) -> Snapshot:
@@ -60,15 +238,43 @@ def read_snapshot(value: object) -> Snapshot:
         elif account == "Not yet valid":
             state = "Not yet valid"
 
-        result["people"].append(
-            {
-                "uuid": identifier,
-                "username": json_string(person["username"]),
-                "name": json_string(person["name"]),
-                "email": json_string(person["email"]),
-                "account": state,
-            }
-        )
+        record: Person = {
+            "uuid": identifier,
+            "username": json_string(person["username"]),
+            "name": json_string(person["name"]),
+            "email": json_string(person["email"]),
+            "account": state,
+        }
+
+        if "password_mfa" in person:
+            password_mfa = person["password_mfa"]
+
+            if password_mfa == "Enabled":
+                record["password_mfa"] = "Enabled"
+            elif password_mfa == "Not configured":
+                record["password_mfa"] = "Not configured"
+            elif password_mfa == "Unknown":
+                record["password_mfa"] = "Unknown"
+            else:
+                raise ValueError("Directory credential state is invalid")
+
+        if "passkeys" in person:
+            passkeys = person["passkeys"]
+
+            if passkeys != "Unknown" and not (type(passkeys) is int and passkeys > 0):
+                raise ValueError("Directory passkey count is invalid")
+
+            record["passkeys"] = cast(int | Literal["Unknown"], passkeys)
+
+        if "checked_at" in person:
+            checked_at = person["checked_at"]
+
+            if checked_at is not None:
+                _date(json_string(checked_at))
+
+            record["checked_at"] = cast(str | None, checked_at)
+
+        result["people"].append(record)
 
     for item in json_array(data["groups"]):
         group = json_object(item)
@@ -162,7 +368,12 @@ def _date(value: str) -> float:
     return parsed.timestamp()
 
 
-def snapshot(backend: access.Directory, now: float | None = None) -> Snapshot:
+def snapshot(
+    backend: access.Directory,
+    now: float | None = None,
+    *,
+    credentials: CredentialCache | None = None,
+) -> Snapshot:
     now = time.time() if now is None else now
     people = _catalog(backend.person_catalog(), "person")
     groups = _catalog(backend.group_catalog(), "group")
@@ -172,6 +383,9 @@ def snapshot(backend: access.Directory, now: float | None = None) -> Snapshot:
         for reference in (identifier, _single(attrs, "spn"))
     }
     result: Snapshot = {"people": [], "groups": [], "memberships": []}
+    credential_summaries = (
+        credentials.summaries(backend, people, now) if credentials is not None else {}
+    )
 
     for identifier, attrs in sorted(groups.items(), key=lambda item: item[1]["name"]):
         descriptions = attrs.get("description", [])
@@ -217,15 +431,21 @@ def snapshot(backend: access.Directory, now: float | None = None) -> Snapshot:
         elif valid_from is not None and valid_from > now:
             account = "Not yet valid"
 
-        result["people"].append(
-            {
-                "uuid": identifier,
-                "username": attrs["name"][0],
-                "name": _single(attrs, "displayname"),
-                "email": next(iter(attrs.get("mail", [])), ""),
-                "account": account,
-            }
-        )
+        person: Person = {
+            "uuid": identifier,
+            "username": attrs["name"][0],
+            "name": _single(attrs, "displayname"),
+            "email": next(iter(attrs.get("mail", [])), ""),
+            "account": account,
+        }
+
+        if identifier in credential_summaries:
+            summary = credential_summaries[identifier]
+            person["password_mfa"] = summary["password_mfa"]
+            person["passkeys"] = summary["passkeys"]
+            person["checked_at"] = summary["checked_at"]
+
+        result["people"].append(person)
         result["memberships"].extend(
             {
                 "person_uuid": identifier,
