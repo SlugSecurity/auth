@@ -956,25 +956,6 @@
                         }
                       }
                     ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "not_provided"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Not provided"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#8E8E8E",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
                   }
                 ]
               },
@@ -1129,25 +1110,6 @@
                         }
                       }
                     ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "not_provided"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Not provided"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#8E8E8E",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
                   }
                 ]
               },
@@ -1298,25 +1260,6 @@
                         "id": "color",
                         "value": {
                           "fixedColor": "#C0C0C0",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "not_provided"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Not provided"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#8E8E8E",
                           "mode": "fixed"
                         }
                       }
@@ -2026,9 +1969,6 @@
                               },
                               "native_hawaiian_pacific_islander": {
                                 "text": "Native Hawaiian or Pacific Islander"
-                              },
-                              "not_provided": {
-                                "text": "Not provided"
                               },
                               "other": {
                                 "text": "Other"

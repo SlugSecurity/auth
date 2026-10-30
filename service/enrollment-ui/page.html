@@ -143,7 +143,7 @@
         {% if study_picker %}
           id="registration-studies"
           data-study-picker
-        {% elif required %}
+        {% elif multiple and required %}
           data-required-choices
         {% endif %}
         class="registration-choice-field{% if field_errors.get(key) %} field-invalid{% endif %}"
@@ -218,6 +218,9 @@
                 name="{{ key }}"
                 type="{{ 'checkbox' if multiple else 'radio' }}"
                 value="{{ code }}"
+                {% if choice_required and not multiple %}
+                  required
+                {% endif %}
                 {% if (multiple and code in (form_values.get(key) or [])) or (not multiple and form_values.get(key) == code) %}
                   checked
                 {% endif %}
@@ -951,12 +954,13 @@
                 <fieldset class="registration-section registration-demographics" id="registration-demographics">
                   <legend>Demographics</legend>
                   <p>These questions help SlugSec apply for grants and sponsorships. We only share anonymous statistics</p>
-                  {{ registration_choices('gender', 'Gender identity') }}
+                  <p>You can select Prefer not to say for any question</p>
+                  {{ registration_choices('gender', 'Gender identity', required=true) }}
                   {{ registration_other('gender', 'gender_other', 'Other gender identity') }}
-                  {{ registration_choices('ethnicity', 'Ethnicity', multiple=true) }}
+                  {{ registration_choices('ethnicity', 'Ethnicity', multiple=true, required=true) }}
                   {{ registration_other('ethnicity', 'ethnicity_other', 'Other ethnicity') }}
-                  {{ registration_choices('lgbtq', 'Do you identify as part of the LGBT+ community?') }}
-                  {{ registration_choices('veteran', 'Are you a veteran?') }}
+                  {{ registration_choices('lgbtq', 'Do you identify as part of the LGBT+ community?', required=true) }}
+                  {{ registration_choices('veteran', 'Are you a veteran?', required=true) }}
                 </fieldset>
                 <div class="registration-submit">
                   <button class="btn btn-primary" type="submit">Complete registration</button>

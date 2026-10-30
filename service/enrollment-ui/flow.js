@@ -691,9 +691,26 @@
     for (const fieldset of root.querySelectorAll("[data-required-choices]")) {
       const choices = [...fieldset.querySelectorAll('input[type="checkbox"]')];
 
-      const update = () => choices[0].setCustomValidity(
-        choices.some((choice) => choice.checked) ? "" : "Select at least one option",
-      );
+      const update = (event) => {
+        const selected = event?.target;
+
+        if (selected?.name === "ethnicity" && selected.checked) {
+          for (const choice of choices) {
+            if (choice === selected || !choice.checked)
+              continue;
+
+            if (selected.value !== "prefer_not_to_say" && choice.value !== "prefer_not_to_say")
+              continue;
+
+            choice.checked = false;
+            choice.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        }
+
+        choices[0].setCustomValidity(
+          choices.some((choice) => choice.checked) ? "" : "Select at least one option",
+        );
+      };
 
       for (const choice of choices)
         choice.addEventListener("change", update);
