@@ -66,7 +66,6 @@ def _optional_column[T](row: sqlite3.Row, key: str, expected: type[T]) -> T | No
 STUDENT_LEVELS = frozenset(
     {"freshman", "sophomore", "junior", "senior", "masters", "phd"}
 )
-DEMOGRAPHICS = ("gender", "ethnicity", "lgbtq", "veteran")
 OPTIONS: dict[str, tuple[tuple[str, str], ...]] = {
     "school_level": (
         ("freshman", "Freshman"),
@@ -549,14 +548,6 @@ class MembershipStore:
             else:
                 raise MembershipUnavailable("Membership registration is unreadable.")
 
-        for question in DEMOGRAPHICS:
-            if not responses.get(question):
-                responses[question] = (
-                    ["prefer_not_to_say"]
-                    if question == "ethnicity"
-                    else "prefer_not_to_say"
-                )
-
         return {
             "person_uuid": _column(row, "person_uuid", str),
             "period": _column(row, "period", str),
@@ -669,10 +660,7 @@ class MembershipStore:
         ]
 
         for question in OPTIONS:
-            counts = dict.fromkeys(dict(OPTIONS[question]), 0)
-
-            if question not in DEMOGRAPHICS:
-                counts["not_provided"] = 0
+            counts = dict.fromkeys((*dict(OPTIONS[question]), "not_provided"), 0)
 
             for record in records:
                 value = record["responses"].get(question)
