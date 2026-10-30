@@ -1169,6 +1169,22 @@ def team_backlog(now: float) -> dict[str, int | float]:
     }
 
 
+def _posix_pass_counts(status: JSONObject) -> tuple[int, int]:
+    counts: list[int] = []
+
+    for field in ("checked", "changed", "skipped", "failed"):
+        value = status[field]
+
+        if type(value) is not int or not 0 <= value <= 5000:
+            raise RuntimeError("POSIX pass count is invalid")
+
+        counts.append(value)
+
+    checked, changed, _, failed = counts
+    require(changed <= checked and failed == 0, "POSIX pass did not succeed")
+    return checked, changed
+
+
 def dependency_snapshot(now: float | None = None) -> DependencySnapshot:
     fixed_now = now
     now = time.time() if now is None else now
@@ -1235,6 +1251,8 @@ def dependency_snapshot(now: float | None = None) -> DependencySnapshot:
             checks[service] = False
             alarms.append(service + "_capability_failed")
 
+    posix_counts: tuple[int, int] | None = None
+
     try:
         if isinstance(container, ProductionRuntime):
             status, _ = _public_posix_status(fixed_now)
@@ -1249,12 +1267,28 @@ def dependency_snapshot(now: float | None = None) -> DependencySnapshot:
         )
 
         checks["posix_worker"] = True
+
+        with suppress(*SAFE_FAILURES):
+            require(
+                0 <= status_now - json_number(status["checked_at"]) <= 30,
+                "POSIX count export is stale",
+            )
+            posix_counts = _posix_pass_counts(status)
     except SAFE_FAILURES:
         checks["posix_worker"] = False
         age = None
         alarms.append("posix_worker_stale")
 
-    signals: dict[str, int | float | None] = {"posix_success_age_seconds": age}
+    signals: dict[str, int | float | None] = {
+        "posix_success_age_seconds": age,
+        "posix_accounts_checked": None,
+        "posix_accounts_changed": None,
+    }
+
+    if posix_counts is not None:
+        signals["posix_accounts_checked"], signals["posix_accounts_changed"] = (
+            posix_counts
+        )
 
     try:
         path = container.STATE / "access" / "status.json"

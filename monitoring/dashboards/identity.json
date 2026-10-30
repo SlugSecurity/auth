@@ -469,7 +469,7 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "rate(identity_application_events_total[$__rate_interval]) and on(job, instance) (up{job=\"kanidm-observer\"} == 1) and on(job, instance) (time() - kanidm_observer_poll_timestamp_seconds < 90) and on(job, instance) (identity_operations_metrics_fetch_success == 1) and on(job, instance) (time() - identity_readiness_checked_timestamp_seconds < 90)",
+                        "expr": "rate(identity_application_events_total{event!~\"posix_(pass|failure)\"}[$__rate_interval]) and on(job, instance) (up{job=\"kanidm-observer\"} == 1) and on(job, instance) (time() - kanidm_observer_poll_timestamp_seconds < 90) and on(job, instance) (identity_operations_metrics_fetch_success == 1) and on(job, instance) (time() - identity_readiness_checked_timestamp_seconds < 90)",
                         "instant": false,
                         "legendFormat": "{{event}}",
                         "range": true
@@ -551,36 +551,6 @@
                         "id": "color",
                         "value": {
                           "fixedColor": "#73BF69",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "posix_failure"
-                    },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#FF7383",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "posix_pass"
-                    },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#8AB8FF",
                           "mode": "fixed"
                         }
                       }
@@ -1854,6 +1824,164 @@
             "version": ""
           }
         }
+      },
+      "panel-13": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_posix_accounts_checked and on(job, instance) (identity_posix_accounts_checked_known == 1) and on(job, instance) (up{job=\"kanidm-observer\"} == 1) and on(job, instance) (time() - kanidm_observer_poll_timestamp_seconds >= 0) and on(job, instance) (time() - kanidm_observer_poll_timestamp_seconds < 90) and on(job, instance) (identity_operations_metrics_fetch_success == 1) and on(job, instance) (time() - identity_readiness_checked_timestamp_seconds >= 0) and on(job, instance) (time() - identity_readiness_checked_timestamp_seconds < 90) and on(job, instance) (identity_dependency_ready{dependency=\"posix_worker\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Human accounts checked during the last successful Unix provisioning pass",
+          "id": 13,
+          "links": [],
+          "title": "Unix accounts checked",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unavailable",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "blue",
+                        "value": null
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value",
+                "wideLayout": true
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-14": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_posix_accounts_changed and on(job, instance) (identity_posix_accounts_changed_known == 1) and on(job, instance) (up{job=\"kanidm-observer\"} == 1) and on(job, instance) (time() - kanidm_observer_poll_timestamp_seconds >= 0) and on(job, instance) (time() - kanidm_observer_poll_timestamp_seconds < 90) and on(job, instance) (identity_operations_metrics_fetch_success == 1) and on(job, instance) (time() - identity_readiness_checked_timestamp_seconds >= 0) and on(job, instance) (time() - identity_readiness_checked_timestamp_seconds < 90) and on(job, instance) (identity_dependency_ready{dependency=\"posix_worker\"} == 1)",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Accounts given Unix defaults during the last successful provisioning pass",
+          "id": 14,
+          "links": [],
+          "title": "Updated in last check",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unavailable",
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "blue",
+                        "value": null
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value",
+                "wideLayout": true
+              }
+            },
+            "version": ""
+          }
+        }
       }
     },
     "layout": {
@@ -1994,6 +2122,46 @@
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-9"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 2,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 280,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 168,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-13"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-14"
                         }
                       }
                     }
