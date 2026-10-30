@@ -666,7 +666,7 @@
 
   function simplifyProfile() {
     const profile = document.querySelector(
-      'form#user_settings_container[hx-post="/ui/api/user_settings/edit_profile"]',
+      'form#user_settings_container[hx-post="/ui/api/user_settings/edit_profile"], div#user_settings_container.identity-profile',
     );
 
     if (!profile)
@@ -681,7 +681,7 @@
     if (name)
       name.textContent = "Name";
 
-    for (const button of profile.querySelectorAll('button, a[href="/ui/unlock"]')) {
+    for (const button of profile.querySelectorAll('button, a[href="/ui/unlock"], a[hx-get="/ui/api/user_settings/add_email"]')) {
       button.remove();
     }
 
@@ -689,7 +689,17 @@
 
     for (const input of profile.querySelectorAll('input[name="name"], input[name="displayname"], input[name="emails[]"]')) {
       input.readOnly = true;
+      input.disabled = false;
+      input.classList.replace("form-control", "form-control-plaintext");
+      input.classList.add("py-0");
     }
+
+    for (const radio of profile.querySelectorAll('input[name="primary_email_index"]')) {
+      radio.disabled = true;
+      radio.closest(".input-group-text").hidden = true;
+    }
+
+    profile.querySelector('label[for="profileEmail"]').textContent = "Email addresses";
 
     if (!profile.querySelector(".identity-profile-help")) {
       const help = document.createElement("p");
@@ -697,6 +707,15 @@
       help.textContent = "Contact infrastructure administration to change these details";
       profile.append(help);
     }
+
+    if (profile.tagName !== "FORM")
+      return;
+
+    const details = document.createElement("div");
+    details.id = profile.id;
+    details.className = "identity-profile";
+    details.append(...profile.childNodes);
+    profile.replaceWith(details);
   }
 
   function updateAccountNavigation() {
@@ -908,6 +927,7 @@
   document.body.addEventListener("htmx:afterSettle", () => {
     applyAuthLayout();
     simplifyTotpSetup();
+    simplifyProfile();
     saveCredentialChange();
     shortenIdentityDisplays();
   });
