@@ -359,6 +359,24 @@ def check_usage(directory: Path) -> None:
             "coverage": [("start", "REAL", 1, 0), ("end", "REAL", 1, 0)],
         }
 
+        unix_tables = {"unix_events", "unix_coverage"}
+        require(
+            not tables.intersection(unix_tables) or unix_tables <= tables,
+            "Unix history schema is incomplete",
+        )
+
+        if unix_tables <= tables:
+            schemas.update(
+                unix_events=[
+                    ("id", "TEXT", 0, 1),
+                    ("at", "INTEGER", 1, 0),
+                    ("subject", "TEXT", 1, 0),
+                    ("client_id", "TEXT", 1, 0),
+                    ("verified", "INTEGER", 1, 0),
+                ],
+                unix_coverage=[("start", "REAL", 1, 0), ("end", "REAL", 1, 0)],
+            )
+
         for table, expected in schemas.items():
             actual = [
                 (name, kind, not_null, primary_key)

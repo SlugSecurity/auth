@@ -28,6 +28,8 @@ from types import FrameType
 from typing import NoReturn, TypedDict, TypeGuard
 from zoneinfo import ZoneInfo
 
+import unix_usage
+
 UTC = timezone.utc
 ZONE = ZoneInfo("America/Los_Angeles")
 MARKER = "IDENTITY_SSO_V1 "
@@ -127,9 +129,11 @@ def _json(value: str | bytes) -> object:
         raise ValueError("Invalid SSO JSON depth") from error
 
 
-def read_line(line: bytes, now: float) -> tuple[float, Event | None] | None:
+def read_line(
+    line: bytes, now: float
+) -> tuple[float, Event | unix_usage.Event | None] | None:
     if len(line) > RECORD_LIMIT + 1024:
-        if MARKER.encode() in line:
+        if MARKER.encode() in line or unix_usage.MARKER.encode() in line:
             raise ValueError("Oversized SSO log line")
 
         return None
@@ -147,20 +151,30 @@ def read_line(line: bytes, now: float) -> tuple[float, Event | None] | None:
     if not math.isfinite(at) or at < 0 or at > now + 300:
         raise ValueError("Invalid Docker log time")
 
-    if MARKER not in text:
+    markers = [marker for marker in (MARKER, unix_usage.MARKER) if marker in text]
+
+    if not markers:
         return at, None
 
-    prefix, payload = text.split(MARKER, 1)
+    if len(markers) != 1:
+        raise ValueError("Conflicting native event markers")
+
+    marker = markers[0]
+    prefix, payload = text.split(marker, 1)
 
     if (
-        MARKER in payload
+        marker in payload
         or len(payload.encode()) > RECORD_LIMIT
         or NATIVE_INFO.fullmatch(prefix[timestamp.end() :]) is None
     ):
         raise ValueError("Invalid SSO log framing")
 
     value = _json(payload)
-    return at, event(value, now)
+    return at, (
+        unix_usage.event(value, now)
+        if marker == unix_usage.MARKER
+        else event(value, now)
+    )
 
 
 def _journal_line(line: bytes) -> bytes:
@@ -186,7 +200,9 @@ def _journal_line(line: bytes) -> bytes:
     return (prefix + " " + message).encode()
 
 
-def read_journal_line(line: bytes, now: float) -> tuple[float, Event | None] | None:
+def read_journal_line(
+    line: bytes, now: float
+) -> tuple[float, Event | unix_usage.Event | None] | None:
     return read_line(_journal_line(line), now)
 
 
@@ -228,7 +244,7 @@ def _native_get(url: str, ca: Path, path: str) -> tuple[bytes, str | None]:
     return data, identifier
 
 
-def verify_capability(url: str, ca: Path) -> None:
+def verify_capability(url: str, ca: Path) -> bool:
     data, _identifier = _native_get(url, ca, "/v1/identity/_capabilities")
     value = _json(data)
 
@@ -238,6 +254,10 @@ def verify_capability(url: str, ca: Path) -> None:
         or value["usage_events"] != 1
     ):
         raise ValueError("Native SSO events are unavailable")
+
+    return (
+        type(value.get("unix_usage_events")) is int and value["unix_usage_events"] == 1
+    )
 
 
 def probe_source(url: str, ca: Path, client: str) -> str:
@@ -422,6 +442,8 @@ class Store:
         with self.db:
             self._set("key_fingerprint", fingerprint)
 
+        self.unix = unix_usage.UnixUsage(self.db, self.key)
+
     def close(self) -> None:
         self.db.close()
 
@@ -528,6 +550,8 @@ class Store:
 
             if connected:
                 self._set("last_read", now)
+
+        self.unix.heartbeat(now, connected)
 
     def resume(self, now: float) -> str:
         earliest = shift_month(
@@ -792,7 +816,7 @@ class Store:
         beginnings = [value for value in (started, first_event) if value]
 
         if not beginnings:
-            return "\n".join(lines) + "\n"
+            return "\n".join(lines) + "\n" + self.unix.metrics(now)
 
         weekly_totals = {
             str(key): (int(signins), int(users))
@@ -961,7 +985,7 @@ class Store:
 
             week += timedelta(days=7)
 
-        return "\n".join(lines) + "\n"
+        return "\n".join(lines) + "\n" + self.unix.metrics(now)
 
 
 def _write_export(output: Path, data: bytes, *, keep_unchanged: bool = False) -> None:
@@ -1062,7 +1086,7 @@ def follow(
             "--no-pager",
         ]
 
-    verify_capability(native_url, ca)
+    store.unix.capability(verify_capability(native_url, ca), time.time())
 
     with subprocess.Popen(
         command,
@@ -1089,7 +1113,9 @@ def follow(
                     clock = time.monotonic()
 
                     if pending_probe is None and clock >= next_probe:
-                        verify_capability(native_url, ca)
+                        store.unix.capability(
+                            verify_capability(native_url, ca), time.time()
+                        )
                         pending_after = time.time() - 1
                         pending_probe = probe_source(native_url, ca, probe_client)
                         store.probe(pending_probe)
@@ -1129,7 +1155,10 @@ def follow(
                                 timestamp, record = parsed
 
                                 if record:
-                                    store.ingest(record, now)
+                                    if unix_usage.is_event(record):
+                                        store.unix.ingest(record, now)
+                                    else:
+                                        store.ingest(event(record, now), now)
                                 checkpoint = max(timestamp, checkpoint)
 
                                 if (

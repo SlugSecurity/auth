@@ -114,12 +114,44 @@
              access_token: access_token.to_string(),
 --- a/server/core/src/https/generic.rs
 +++ b/server/core/src/https/generic.rs
-@@ -11,7 +11,7 @@
+@@ -11,7 +11,9 @@
  use super::ServerState;
  
  pub async fn identity_capabilities() -> Json<serde_json::Value> {
 -    Json(serde_json::json!({ "credential_update_compare": 1 }))
-+    Json(serde_json::json!({ "credential_update_compare": 1, "usage_events": 1 }))
++    Json(
++        serde_json::json!({ "credential_update_compare": 1, "usage_events": 1, "unix_usage_events": 1 }),
++    )
  }
  
  #[utoipa::path(
+--- a/server/core/src/actors/v1_read.rs
++++ b/server/core/src/actors/v1_read.rs
+@@ -1076,6 +1076,27 @@
+             .and_then(|r| idm_auth.commit().map(|_| r));
+ 
+         security_info!(?res, "Sending result");
++
++        let client_id = uuae.ident.get_uuid();
++        match &res {
++            Ok(token)
++                if target_uuid >= DYNAMIC_RANGE_MINIMUM_UUID
++                    && client_id >= DYNAMIC_RANGE_MINIMUM_UUID
++                    && uuae.ident.get_user_entry().is_some() =>
++            {
++                info!(
++                    "IDENTITY_UNIX_V1 {}",
++                    serde_json::json!({
++                        "event_id": eventid,
++                        "at": ct.as_secs(),
++                        "subject": target_uuid,
++                        "client_id": client_id,
++                        "verified": token.is_some(),
++                    })
++                );
++            }
++            _ => {}
++        }
+ 
+         res
+     }

@@ -124,6 +124,7 @@ let
     "service/native_names.py"
     "service/observability.py"
     "service/usage.py"
+    "service/unix_usage.py"
     "service/operations.py"
     "service/posix_defaults.py"
     "service/runtime_view.py"

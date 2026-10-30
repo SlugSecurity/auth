@@ -5,6 +5,7 @@ src = ["service", "deploy"]
 [tool.ruff.per-file-target-version]
 "deploy/manage.py" = "py310"
 "service/usage.py" = "py310"
+"service/unix_usage.py" = "py310"
 "deploy/certificates.py" = "py310"
 "deploy/runtime.py" = "py310"
 "service/contracts.py" = "py310"
@@ -38,6 +39,7 @@ files = [
   "service/membership_portal.py",
   "service/observability.py",
   "service/usage.py",
+  "service/unix_usage.py",
   "service/operations.py",
   "service/posix_defaults.py",
   "service/contracts.py",
@@ -70,6 +72,7 @@ include = [
   "service/membership_portal.py",
   "service/observability.py",
   "service/usage.py",
+  "service/unix_usage.py",
   "service/operations.py",
   "service/posix_defaults.py",
   "service/contracts.py",

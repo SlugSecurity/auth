@@ -833,7 +833,8 @@ class Observer:
                     raise ValueError("SSO collection state is unavailable")
 
                 if any(
-                    line and not line.startswith(("identity_sso_", "# "))
+                    line
+                    and not line.startswith(("identity_sso_", "identity_unix_", "# "))
                     for line in usage.splitlines()
                 ):
                     raise ValueError("Unexpected SSO metrics")

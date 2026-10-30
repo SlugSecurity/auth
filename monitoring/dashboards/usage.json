@@ -1059,6 +1059,295 @@
             "version": ""
           }
         }
+      },
+      "panel-8": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_unix_checks{job=\"kanidm-observer\",window=\"24h\",result=\"verified\"} and on(job, instance) (up{job=\"kanidm-observer\"} == 1) and on(job, instance) (time() - timestamp(up{job=\"kanidm-observer\"}) >= 0) and on(job, instance) (time() - timestamp(up{job=\"kanidm-observer\"}) <= 150) and on(job, instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(job, instance) (identity_unix_events_available{job=\"kanidm-observer\"} == 1) and on(job, instance) (identity_unix_collector_connected{job=\"kanidm-observer\"} == 1)",
+                        "format": "time_series",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Central Unix credential checks verified during the last 24 hours, excluding SSH sessions and cached logins. The view and period controls above apply only to OAuth app sign ins",
+          "id": 8,
+          "links": [],
+          "title": "",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "displayName": "Verified checks",
+                  "min": 0,
+                  "noValue": "No data",
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-9": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_unix_checks{job=\"kanidm-observer\",window=\"24h\",result=\"not_verified\"} and on(job, instance) (up{job=\"kanidm-observer\"} == 1) and on(job, instance) (time() - timestamp(up{job=\"kanidm-observer\"}) >= 0) and on(job, instance) (time() - timestamp(up{job=\"kanidm-observer\"}) <= 150) and on(job, instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(job, instance) (identity_unix_events_available{job=\"kanidm-observer\"} == 1) and on(job, instance) (identity_unix_collector_connected{job=\"kanidm-observer\"} == 1)",
+                        "format": "time_series",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Central Unix credential checks not verified during the last 24 hours, excluding SSH sessions and cached logins. The view and period controls above apply only to OAuth app sign ins",
+          "id": 9,
+          "links": [],
+          "title": "",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "displayName": "Unverified checks",
+                  "min": 0,
+                  "noValue": "No data",
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-10": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_unix_verified_accounts{job=\"kanidm-observer\",window=\"24h\"} and on(job, instance) (up{job=\"kanidm-observer\"} == 1) and on(job, instance) (time() - timestamp(up{job=\"kanidm-observer\"}) >= 0) and on(job, instance) (time() - timestamp(up{job=\"kanidm-observer\"}) <= 150) and on(job, instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(job, instance) (identity_unix_events_available{job=\"kanidm-observer\"} == 1) and on(job, instance) (identity_unix_collector_connected{job=\"kanidm-observer\"} == 1)",
+                        "format": "time_series",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Distinct accounts verified by central Unix credential checks during the last 24 hours, excluding SSH sessions and cached logins. The view and period controls above apply only to OAuth app sign ins",
+          "id": 10,
+          "links": [],
+          "title": "",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "displayName": "Accounts verified",
+                  "min": 0,
+                  "noValue": "No data",
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              }
+            },
+            "version": ""
+          }
+        }
+      },
+      "panel-11": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "identity-prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "expr": "identity_unix_coverage_ratio{job=\"kanidm-observer\",window=\"24h\"} and on(job, instance) (up{job=\"kanidm-observer\"} == 1) and on(job, instance) (time() - timestamp(up{job=\"kanidm-observer\"}) >= 0) and on(job, instance) (time() - timestamp(up{job=\"kanidm-observer\"}) <= 150) and on(job, instance) (identity_sso_metrics_read_success{job=\"kanidm-observer\"} == 1) and on(job, instance) (identity_unix_events_available{job=\"kanidm-observer\"} == 1) and on(job, instance) (identity_unix_collector_connected{job=\"kanidm-observer\"} == 1)",
+                        "format": "time_series",
+                        "instant": true,
+                        "legendFormat": "",
+                        "range": false
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Observed central Unix credential check coverage since collection began within the last 24 hours, excluding SSH sessions and cached logins. The view and period controls above apply only to OAuth app sign ins",
+          "id": 11,
+          "links": [],
+          "title": "",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 1,
+                  "displayName": "Observed coverage",
+                  "min": 0,
+                  "noValue": "No data",
+                  "unit": "percentunit",
+                  "max": 1
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+              }
+            },
+            "version": ""
+          }
+        }
       }
     },
     "layout": {
@@ -1220,6 +1509,64 @@
                               }
                             ]
                           }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "Unix credential checks, last 24 hours",
+              "hideHeader": false,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 4,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 240,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 168,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-8"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-9"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-10"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-11"
                         }
                       }
                     }
