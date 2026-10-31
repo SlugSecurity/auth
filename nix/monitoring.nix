@@ -56,7 +56,7 @@ in
         metric_relabel_configs = [
           {
             source_labels = [ "__name__" ];
-            regex = "identity_sso_(month_.+|week_.+|app_.+|day_.+|weekday_.+|period_.+)";
+            regex = "identity_(sso|auth)_(month_.+|week_.+|app_.+|day_.+|weekday_.+|period_.+)";
             action = "drop";
           }
         ];
@@ -70,7 +70,7 @@ in
         metric_relabel_configs = [
           {
             source_labels = [ "__name__" ];
-            regex = "identity_sso_(month_.+|week_.+|app_.+|day_.+|weekday_.+|period_.+)";
+            regex = "identity_(sso|auth)_(month_.+|week_.+|app_.+|day_.+|weekday_.+|period_.+)";
             action = "keep";
           }
         ];

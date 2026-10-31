@@ -18,6 +18,18 @@ class Event(TypedDict):
     verified: bool
 
 
+class Status(TypedDict):
+    available: bool
+    connected: bool
+    capability_checked_at: float
+    collection_started_at: float
+    retained_since: float
+    window_start_at: float
+    window_end_at: float
+    covered_seconds: float
+    coverage_ratio: float | None
+
+
 def is_event(value: object) -> TypeGuard[Event]:
     return is_object_dict(value) and "client_id" in value
 
@@ -72,6 +84,11 @@ class UnixUsage:
             "id TEXT PRIMARY KEY, at INTEGER NOT NULL, subject TEXT NOT NULL,"
             "client_id TEXT NOT NULL, verified INTEGER NOT NULL CHECK(verified IN (0,1)));"
             "CREATE INDEX IF NOT EXISTS unix_events_at ON unix_events(at);"
+            "CREATE INDEX IF NOT EXISTS unix_events_recent ON unix_events(at DESC,id DESC);"
+            "CREATE INDEX IF NOT EXISTS unix_events_verified_recent "
+            "ON unix_events(at DESC,id DESC) WHERE verified=1;"
+            "CREATE INDEX IF NOT EXISTS unix_events_verified_subject_recent "
+            "ON unix_events(subject,at DESC,id DESC) WHERE verified=1;"
             "CREATE TABLE IF NOT EXISTS unix_coverage (start REAL NOT NULL, end REAL NOT NULL);"
         )
 
@@ -157,6 +174,49 @@ class UnixUsage:
             self._set("heartbeat", now)
             self._set("connected", int(connected))
 
+    def _coverage(self, begin: float, now: float) -> tuple[float, float]:
+        started = self._get("started")
+        covered = 0.0
+        through = max(begin, started)
+
+        for start, end in self.db.execute(
+            "SELECT start,end FROM unix_coverage WHERE start<? AND end>? ORDER BY start,end",
+            (now, begin),
+        ):
+            lower = max(through, begin, start)
+            upper = min(now, end)
+
+            if upper > lower:
+                covered += upper - lower
+                through = upper
+
+        return covered, max(0.0, now - max(begin, started))
+
+    def status(self, now: float) -> Status:
+        covered, elapsed = self._coverage(now - 30 * 86400, now)
+        return {
+            "available": self._get("available") == 1
+            and 0 <= now - self._get("capability_checked") <= 30,
+            "connected": self.connected(now),
+            "capability_checked_at": self._get("capability_checked"),
+            "collection_started_at": self._get("started"),
+            "retained_since": now - 31 * 86400,
+            "window_start_at": now - 30 * 86400,
+            "window_end_at": now,
+            "covered_seconds": covered,
+            "coverage_ratio": min(1.0, covered / elapsed)
+            if elapsed and self._get("started")
+            else None,
+        }
+
+    def connected(self, now: float) -> bool:
+        return (
+            self._get("available") == 1
+            and 0 <= now - self._get("capability_checked") <= 30
+            and self._get("connected") == 1
+            and 0 <= now - self._get("heartbeat") <= 30
+        )
+
     def metrics(self, now: float) -> str:
         with self.db:
             self.db.execute("DELETE FROM unix_events WHERE at<?", (now - 31 * 86400,))
@@ -168,11 +228,7 @@ class UnixUsage:
             self._get("available") == 1
             and 0 <= now - self._get("capability_checked") <= 30
         )
-        connected = (
-            available
-            and self._get("connected") == 1
-            and 0 <= now - self._get("heartbeat") <= 30
-        )
+        connected = self.connected(now)
         started = self._get("started")
         lines = [
             f"identity_unix_events_available {int(available)}",
@@ -202,22 +258,7 @@ class UnixUsage:
                 "count(DISTINCT client_id) FROM unix_events WHERE at>=? AND at<=?",
                 (begin, now),
             ).fetchone()
-            intervals = self.db.execute(
-                "SELECT start,end FROM unix_coverage WHERE start<? AND end>? ORDER BY start,end",
-                (now, begin),
-            ).fetchall()
-            covered = 0.0
-            through = max(begin, started)
-
-            for start, end in intervals:
-                lower = max(through, begin, start)
-                upper = min(now, end)
-
-                if upper > lower:
-                    covered += upper - lower
-                    through = upper
-
-            elapsed = max(0.0, now - max(begin, started))
+            covered, elapsed = self._coverage(begin, now)
             ratio = str(min(1.0, covered / elapsed)) if elapsed else "NaN"
             lines.extend(
                 [

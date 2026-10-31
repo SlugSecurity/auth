@@ -54,9 +54,35 @@ class Event(TypedDict):
     app: str
 
 
-class AppLogin(TypedDict):
+class _ActivityDetails(TypedDict, total=False):
+    kind: str
+    client_id: str | None
+    result: str
+
+
+class AppLogin(_ActivityDetails):
     at: int
     app: str
+
+
+class RecentActivity(AppLogin):
+    subject: str
+
+
+class ReaderActivity(TypedDict):
+    client_id: str
+    checks: int
+    verified: int
+    last_at: int
+    window_start_at: float
+    window_end_at: float
+
+
+class UnixActivity(TypedDict):
+    subject: str
+    at: int
+    client_id: str
+    result: str
 
 
 class SubjectActivity(TypedDict):
@@ -67,8 +93,13 @@ class SubjectActivity(TypedDict):
 class PeopleActivity(TypedDict):
     timestamp: float
     connected: bool
+    unix_connected: bool
     key_fingerprint: str
     subjects: dict[str, SubjectActivity]
+    recent: list[RecentActivity]
+    readers: list[ReaderActivity]
+    unix_recent: list[UnixActivity]
+    unix: unix_usage.Status
 
 
 def canonical_uuid(value: object) -> str:
@@ -198,12 +229,6 @@ def _journal_line(line: bytes) -> bytes:
     instant = datetime.fromtimestamp(int(timestamp) / 1_000_000, UTC)
     prefix = instant.isoformat().replace("+00:00", "Z")
     return (prefix + " " + message).encode()
-
-
-def read_journal_line(
-    line: bytes, now: float
-) -> tuple[float, Event | unix_usage.Event | None] | None:
-    return read_line(_journal_line(line), now)
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -383,6 +408,24 @@ class _Coverage:
 
         return self.totals[index] + (min(value, self.ends[index]) - self.starts[index])
 
+    def intersection(self, other: "_Coverage") -> "_Coverage":
+        rows: list[tuple[float, float]] = []
+        left = right = 0
+
+        while left < len(self.starts) and right < len(other.starts):
+            start = max(self.starts[left], other.starts[right])
+            end = min(self.ends[left], other.ends[right])
+
+            if end > start:
+                rows.append((start, end))
+
+            if self.ends[left] < other.ends[right]:
+                left += 1
+            else:
+                right += 1
+
+        return _Coverage(rows)
+
     def seconds(self, start: float, end: float) -> float:
         if end <= start:
             return 0.0
@@ -429,6 +472,9 @@ class Store:
             "day TEXT NOT NULL, weekday INTEGER NOT NULL, hour INTEGER NOT NULL);"
             "CREATE INDEX IF NOT EXISTS events_month ON events(month);"
             "CREATE INDEX IF NOT EXISTS events_app ON events(app_id,at DESC,id DESC);"
+            "CREATE INDEX IF NOT EXISTS events_recent ON events(at DESC,id DESC);"
+            "CREATE INDEX IF NOT EXISTS events_subject_recent "
+            "ON events(subject,at DESC,id DESC);"
             "CREATE TABLE IF NOT EXISTS coverage (start REAL NOT NULL, end REAL NOT NULL);"
         )
 
@@ -443,6 +489,32 @@ class Store:
             self._set("key_fingerprint", fingerprint)
 
         self.unix = unix_usage.UnixUsage(self.db, self.key)
+        for name, pattern in (
+            ("month", "%Y-%m"),
+            ("day", "%Y-%m-%d"),
+            ("weekday", "%w"),
+            ("hour", "%H"),
+        ):
+
+            def calendar(at: int, pattern: str = pattern) -> str:
+                return datetime.fromtimestamp(at, ZONE).strftime(pattern)
+
+            self.db.create_function(
+                "identity_" + name,
+                1,
+                calendar,
+                deterministic=True,
+            )
+        self.db.executescript(
+            "CREATE TEMP VIEW auth_events AS "
+            "SELECT id,at,subject,app_id,app,month,day,weekday,hour,"
+            "'sso' AS kind,NULL AS client_id,'verified' AS result FROM events "
+            "UNION ALL SELECT id,at,subject,'managed_unix','managed_unix',"
+            "identity_month(at),identity_day(at),"
+            "(CAST(identity_weekday(at) AS INTEGER)+6)%7,"
+            "CAST(identity_hour(at) AS INTEGER),'unix_credential',client_id,"
+            "'verified' FROM unix_events WHERE verified=1;"
+        )
 
     def close(self) -> None:
         self.db.close()
@@ -561,6 +633,39 @@ class Store:
         value = max(earliest, min(checkpoint, now) - 60) if checkpoint else earliest
         return datetime.fromtimestamp(value, UTC).isoformat().replace("+00:00", "Z")
 
+    def _recent(self, now: float, subject: str | None = None) -> sqlite3.Cursor:
+        if subject is None:
+            return self.db.execute(
+                "SELECT subject,at,app,kind,client_id,result FROM ("
+                "SELECT subject,at,app,'sso' AS kind,NULL AS client_id,"
+                "'verified' AS result,id FROM ("
+                "SELECT subject,at,app,id FROM events WHERE at>=? AND at<=? "
+                "ORDER BY at DESC,id DESC LIMIT 50) UNION ALL "
+                "SELECT subject,at,'managed_unix','unix_credential',client_id,"
+                "'verified',id FROM ("
+                "SELECT subject,at,client_id,id FROM unix_events "
+                "WHERE verified=1 AND at>=? AND at<=? "
+                "ORDER BY at DESC,id DESC LIMIT 50)) "
+                "ORDER BY at DESC,id DESC,kind DESC LIMIT 50",
+                (now - 30 * 86400, now, now - 30 * 86400, now),
+            )
+
+        return self.db.execute(
+            "SELECT subject,at,app,kind,client_id,result FROM ("
+            "SELECT subject,at,app,'sso' AS kind,NULL AS client_id,"
+            "'verified' AS result,id FROM ("
+            "SELECT subject,at,app,id FROM events "
+            "WHERE subject=? AND at>=? AND at<=? "
+            "ORDER BY at DESC,id DESC LIMIT 10) UNION ALL "
+            "SELECT subject,at,'managed_unix','unix_credential',client_id,"
+            "'verified',id FROM ("
+            "SELECT subject,at,client_id,id FROM unix_events "
+            "WHERE subject=? AND verified=1 AND at>=? AND at<=? "
+            "ORDER BY at DESC,id DESC LIMIT 10)) "
+            "ORDER BY at DESC,id DESC,kind DESC LIMIT 10",
+            (subject, now - 30 * 86400, now, subject, now - 30 * 86400, now),
+        )
+
     def people(self, now: float) -> PeopleActivity:
         cutoff = shift_month(
             month_start(datetime.fromtimestamp(now, ZONE)), -12
@@ -568,39 +673,181 @@ class Store:
         subjects: dict[str, SubjectActivity] = {
             str(subject): {"last_at": int(last_at), "recent": []}
             for subject, last_at in self.db.execute(
-                "SELECT subject,max(at) FROM events WHERE at>=? AND at<=? GROUP BY subject",
-                (cutoff, now),
+                "SELECT subject,max(at) FROM ("
+                "SELECT subject,max(at) AS at FROM events "
+                "WHERE at>=? AND at<=? GROUP BY subject UNION ALL "
+                "SELECT subject,max(at) FROM unix_events "
+                "WHERE verified=1 AND at>=? AND at<=? GROUP BY subject) "
+                "GROUP BY subject",
+                (cutoff, now, now - 31 * 86400, now),
             )
         }
 
-        for subject, at, app in self.db.execute(
-            "SELECT subject,at,app FROM ("
-            "SELECT subject,at,app,id,row_number() OVER ("
-            "PARTITION BY subject ORDER BY at DESC,id DESC) AS position "
-            "FROM events WHERE at>=? AND at<=?) "
-            "WHERE position<=10 ORDER BY subject,at DESC,id DESC",
-            (now - 30 * 86400, now),
-        ):
-            subjects[str(subject)]["recent"].append({"at": int(at), "app": str(app)})
+        for identifier, activity in subjects.items():
+            for _subject, at, app, kind, client_id, result in self._recent(
+                now, identifier
+            ):
+                login: AppLogin = {"at": int(at), "app": str(app)}
 
+                if kind == "unix_credential":
+                    login["kind"] = str(kind)
+                    login["client_id"] = str(client_id)
+                    login["result"] = str(result)
+
+                activity["recent"].append(login)
+
+        recent: list[RecentActivity] = [
+            {
+                "subject": str(subject),
+                "at": int(at),
+                "app": str(app),
+                "kind": str(kind),
+                "client_id": str(client_id) if client_id is not None else None,
+                "result": str(result),
+            }
+            for subject, at, app, kind, client_id, result in self._recent(now)
+        ]
+        readers: list[ReaderActivity] = [
+            {
+                "client_id": str(client_id),
+                "checks": int(checks),
+                "verified": int(verified),
+                "last_at": int(last_at),
+                "window_start_at": now - 30 * 86400,
+                "window_end_at": now,
+            }
+            for client_id, checks, verified, last_at in self.db.execute(
+                "SELECT client_id,count(*),sum(verified),max(at) FROM unix_events "
+                "WHERE at>=? AND at<=? GROUP BY client_id "
+                "ORDER BY max(at) DESC,client_id LIMIT 100",
+                (now - 30 * 86400, now),
+            )
+        ]
+        unix_recent: list[UnixActivity] = [
+            {
+                "subject": str(subject),
+                "at": int(at),
+                "client_id": str(client_id),
+                "result": "verified" if verified else "not_verified",
+            }
+            for subject, at, client_id, verified in self.db.execute(
+                "SELECT subject,at,client_id,verified FROM unix_events "
+                "WHERE at>=? AND at<=? ORDER BY at DESC,id DESC LIMIT 50",
+                (now - 30 * 86400, now),
+            )
+        ]
         return {
             "timestamp": now,
             "connected": self._get("connected") == "1"
             and 0 <= now - self._number("heartbeat") <= 30,
+            "unix_connected": self.unix.connected(now),
             "key_fingerprint": hashlib.sha256(self.key).hexdigest(),
             "subjects": subjects,
+            "recent": recent,
+            "readers": readers,
+            "unix_recent": unix_recent,
+            "unix": self.unix.status(now),
         }
 
     def metrics(self, now: float) -> str:
         local_now = datetime.fromtimestamp(now, ZONE)
-        current = month_start(local_now)
-        cutoff = shift_month(current, -12)
+        cutoff = shift_month(month_start(local_now), -12)
 
         with self.db:
             self.db.execute(
                 "DELETE FROM events WHERE month<?", (cutoff.strftime("%Y-%m"),)
             )
             self.db.execute("DELETE FROM coverage WHERE end<=?", (cutoff.timestamp(),))
+
+        unix_metrics = self.unix.metrics(now)
+        coverage = _Coverage(
+            [
+                (float(start), float(end))
+                for start, end in self.db.execute("SELECT start,end FROM coverage")
+            ]
+        )
+        unix_coverage = _Coverage(
+            [
+                (max(float(start), now - 31 * 86400), float(end))
+                for start, end in self.db.execute(
+                    "SELECT start,end FROM unix_coverage WHERE end>?",
+                    (now - 31 * 86400,),
+                )
+            ]
+        )
+        started = self._number("started")
+        unix_started = self._number("unix_started")
+        complete_started = max(started, unix_started) if started and unix_started else 0
+        source_metrics = (
+            f'identity_auth_source_connected{{source="sso"}} '
+            f"{int(self._get('connected') == '1' and 0 <= now - self._number('heartbeat') <= 30)}\n"
+            f'identity_auth_source_connected{{source="unix_credential"}} '
+            f"{int(self.unix.connected(now))}\n"
+        )
+        sso_metrics = self._activity_metrics(now, "events", "sso", coverage, started)
+        self.db.execute(
+            "CREATE TEMP TABLE auth_metrics AS SELECT * FROM auth_events WHERE at<=?",
+            (now,),
+        )
+
+        try:
+            self.db.execute("CREATE INDEX auth_metrics_month ON auth_metrics(month,at)")
+            self.db.execute("CREATE INDEX auth_metrics_day ON auth_metrics(day)")
+            self.db.execute(
+                "CREATE INDEX auth_metrics_app ON auth_metrics(app_id,at DESC,id DESC)"
+            )
+            self.db.execute("CREATE INDEX auth_metrics_at ON auth_metrics(at)")
+            auth_metrics = self._activity_metrics(
+                now,
+                "auth_metrics",
+                "auth",
+                coverage.intersection(unix_coverage),
+                complete_started,
+            )
+        finally:
+            self.db.execute("DROP TABLE auth_metrics")
+
+        return sso_metrics + auth_metrics + source_metrics + unix_metrics
+
+    def _activity_metrics(
+        self,
+        now: float,
+        table: str,
+        family: str,
+        coverage: _Coverage,
+        started: float,
+    ) -> str:
+        projection = {
+            (
+                "events",
+                "sso",
+            ): "CREATE TEMP VIEW activity_metrics AS SELECT * FROM events",
+            (
+                "auth_metrics",
+                "auth",
+            ): "CREATE TEMP VIEW activity_metrics AS SELECT * FROM auth_metrics",
+        }.get((table, family))
+
+        if projection is None:
+            raise ValueError("Invalid authentication projection")
+
+        self.db.execute(projection)
+
+        try:
+            return self._period_metrics(now, family, coverage, started)
+        finally:
+            self.db.execute("DROP VIEW activity_metrics")
+
+    def _period_metrics(
+        self,
+        now: float,
+        family: str,
+        coverage: _Coverage,
+        started: float,
+    ) -> str:
+        local_now = datetime.fromtimestamp(now, ZONE)
+        current = month_start(local_now)
+        cutoff = shift_month(current, -12)
 
         lines: list[str] = []
 
@@ -613,7 +860,7 @@ class Store:
                 else ""
             )
             number = "NaN" if math.isnan(value) else str(value)
-            lines.append(f"identity_sso_{name}{suffix} {number}")
+            lines.append(f"identity_{family}_{name}{suffix} {number}")
 
         for name, key in (
             ("collection_started_timestamp_seconds", "started"),
@@ -624,7 +871,14 @@ class Store:
             ("collector_failures_total", "failures"),
             ("collector_rejected_total", "rejected"),
         ):
-            sample(name, self._number(key))
+            value = self._number(key)
+
+            if family == "auth" and key == "started":
+                value = started
+            elif family == "auth" and key == "last_event":
+                value = max(value, self._number("unix_last_event"))
+
+            sample(name, value)
 
         sample("export_timestamp_seconds", now)
 
@@ -637,28 +891,21 @@ class Store:
                     hour=f"{hour:02}",
                 )
 
-        started = self._number("started")
-        coverage = _Coverage(
-            [
-                (float(start), float(end))
-                for start, end in self.db.execute("SELECT start,end FROM coverage")
-            ]
-        )
         apps = {
             str(app_id): str(
                 self.db.execute(
-                    "SELECT app FROM events WHERE app_id=? AND at<=? ORDER BY at DESC,id DESC LIMIT 1",
+                    "SELECT app FROM activity_metrics WHERE app_id=? AND at<=? ORDER BY at DESC,id DESC LIMIT 1",
                     (app_id, now),
                 ).fetchone()[0]
             )
             for (app_id,) in self.db.execute(
-                "SELECT DISTINCT app_id FROM events WHERE at<=?", (now,)
+                "SELECT DISTINCT app_id FROM activity_metrics WHERE at<=?", (now,)
             )
         }
         months = {
             str(row[0])
             for row in self.db.execute(
-                "SELECT DISTINCT month FROM events WHERE at<=?", (now,)
+                "SELECT DISTINCT month FROM activity_metrics WHERE at<=?", (now,)
             )
         }
 
@@ -676,7 +923,7 @@ class Store:
                 continue
 
             signins, users = self.db.execute(
-                "SELECT count(*), count(DISTINCT subject) FROM events WHERE month=? AND at<=?",
+                "SELECT count(*), count(DISTINCT subject) FROM activity_metrics WHERE month=? AND at<=?",
                 (month, now),
             ).fetchone()
 
@@ -693,7 +940,9 @@ class Store:
                 month=month,
             )
 
-            if signins == 0 and covered == 0:
+            if signins == 0 and (
+                covered == 0 or (family == "auth" and covered < duration)
+            ):
                 continue
 
             sample(
@@ -718,14 +967,14 @@ class Store:
             days = {
                 str(day): (int(count), int(daily_users))
                 for day, count, daily_users in self.db.execute(
-                    "SELECT day,count(*),count(DISTINCT subject) FROM events WHERE month=? AND at<=? GROUP BY day",
+                    "SELECT day,count(*),count(DISTINCT subject) FROM activity_metrics WHERE month=? AND at<=? GROUP BY day",
                     (month, now),
                 )
             }
             app_days = {
                 (str(day), str(app_id)): int(count)
                 for day, app_id, count in self.db.execute(
-                    "SELECT day,app_id,count(*) FROM events WHERE month=? AND at<=? GROUP BY day,app_id",
+                    "SELECT day,app_id,count(*) FROM activity_metrics WHERE month=? AND at<=? GROUP BY day,app_id",
                     (month, now),
                 )
             }
@@ -761,7 +1010,7 @@ class Store:
                 day += timedelta(days=1)
 
             for app_id, count, app_users in self.db.execute(
-                "SELECT app_id,count(*),count(DISTINCT subject) FROM events WHERE month=? AND at<=? GROUP BY app_id",
+                "SELECT app_id,count(*),count(DISTINCT subject) FROM activity_metrics WHERE month=? AND at<=? GROUP BY app_id",
                 (month, now),
             ):
                 app = apps[app_id]
@@ -773,7 +1022,7 @@ class Store:
             bins = {
                 (int(day), int(hour)): int(count)
                 for day, hour, count in self.db.execute(
-                    "SELECT weekday,hour,count(*) FROM events WHERE month=? AND at<=? GROUP BY weekday,hour",
+                    "SELECT weekday,hour,count(*) FROM activity_metrics WHERE month=? AND at<=? GROUP BY weekday,hour",
                     (month, now),
                 )
             }
@@ -811,18 +1060,18 @@ class Store:
                     )
 
         first_event = self.db.execute(
-            "SELECT min(at) FROM events WHERE at<=?", (now,)
+            "SELECT min(at) FROM activity_metrics WHERE at<=?", (now,)
         ).fetchone()[0]
         beginnings = [value for value in (started, first_event) if value]
 
         if not beginnings:
-            return "\n".join(lines) + "\n" + self.unix.metrics(now)
+            return "\n".join(lines) + "\n"
 
         weekly_totals = {
             str(key): (int(signins), int(users))
             for key, signins, users in self.db.execute(
                 "SELECT date(day,'-6 days','weekday 1'),count(*),count(DISTINCT subject) "
-                "FROM events WHERE at<=? GROUP BY 1",
+                "FROM activity_metrics WHERE at<=? GROUP BY 1",
                 (now,),
             )
         }
@@ -830,7 +1079,7 @@ class Store:
         weekly_apps: dict[str, list[tuple[str, int, int]]] = {}
         for key, app_id, count, app_users in self.db.execute(
             "SELECT date(day,'-6 days','weekday 1'),app_id,count(*),count(DISTINCT subject) "
-            "FROM events WHERE at<=? GROUP BY 1,app_id",
+            "FROM activity_metrics WHERE at<=? GROUP BY 1,app_id",
             (now,),
         ):
             weekly_apps.setdefault(str(key), []).append(
@@ -839,14 +1088,15 @@ class Store:
 
         weekly_days = dict(
             self.db.execute(
-                "SELECT day,count(*) FROM events WHERE at<=? GROUP BY day", (now,)
+                "SELECT day,count(*) FROM activity_metrics WHERE at<=? GROUP BY day",
+                (now,),
             )
         )
         weekly_hours = {
             (str(key), int(hour)): int(count)
             for key, hour, count in self.db.execute(
                 "SELECT date(day,'-6 days','weekday 1'),hour,count(*) "
-                "FROM events WHERE at<=? GROUP BY 1,hour",
+                "FROM activity_metrics WHERE at<=? GROUP BY 1,hour",
                 (now,),
             )
         }
@@ -854,7 +1104,7 @@ class Store:
             (str(key), int(weekday), int(hour)): int(count)
             for key, weekday, hour, count in self.db.execute(
                 "SELECT date(day,'-6 days','weekday 1'),weekday,hour,count(*) "
-                "FROM events WHERE at<=? GROUP BY 1,weekday,hour",
+                "FROM activity_metrics WHERE at<=? GROUP BY 1,weekday,hour",
                 (now,),
             )
         }
@@ -885,7 +1135,9 @@ class Store:
                 week=label,
             )
 
-            if not signins and not covered:
+            if not signins and (
+                not covered or (family == "auth" and covered < duration)
+            ):
                 week += timedelta(days=7)
                 continue
 
@@ -985,7 +1237,7 @@ class Store:
 
             week += timedelta(days=7)
 
-        return "\n".join(lines) + "\n" + self.unix.metrics(now)
+        return "\n".join(lines) + "\n"
 
 
 def _write_export(output: Path, data: bytes, *, keep_unchanged: bool = False) -> None:

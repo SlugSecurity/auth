@@ -108,6 +108,8 @@ def main() -> None:
                 "/member-dashboards/directory.json",
                 "--usage-metrics",
                 "/observe/usage/usage.prom",
+                "--unix-reader-labels",
+                "/run/observer/unix-readers.json",
                 "--operations-url",
                 "https://portal:9443/operations/metrics",
                 "--bind",

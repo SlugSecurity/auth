@@ -43,6 +43,10 @@ class Person(TypedDict):
     password_mfa: NotRequired[PasswordMfa]
     passkeys: NotRequired[int | Literal["Unknown"]]
     checked_at: NotRequired[str | None]
+    posix: NotRequired[bool]
+    gid: NotRequired[int | Literal["Unknown"]]
+    shell: NotRequired[str]
+    ssh_keys: NotRequired[int | Literal["Unknown"]]
 
 
 class Group(TypedDict):
@@ -50,6 +54,11 @@ class Group(TypedDict):
     name: str
     description: str
     system: bool
+    spn: NotRequired[str]
+    entry_manager: NotRequired[str]
+    parents: NotRequired[list[str]]
+    posix: NotRequired[bool]
+    gid: NotRequired[int | Literal["Unknown"]]
 
 
 class Membership(TypedDict):
@@ -62,6 +71,27 @@ class Snapshot(TypedDict):
     people: list[Person]
     groups: list[Group]
     memberships: list[Membership]
+
+
+def _reference(value: object) -> str:
+    reference = json_string(value)
+
+    if (
+        not reference
+        or len(reference) > 512
+        or any(
+            char.isspace() or ord(char) < 32 or ord(char) == 127 for char in reference
+        )
+    ):
+        raise ValueError("Directory reference is invalid")
+
+    try:
+        return access.canonical_uuid(reference)
+    except access.AccessDenied:
+        if reference.count("@") != 1 or not all(reference.split("@")):
+            raise ValueError("Directory reference is invalid") from None
+
+    return reference
 
 
 def _password_mfa(value: object) -> PasswordMfa:
@@ -217,6 +247,7 @@ def read_snapshot(value: object) -> Snapshot:
     result: Snapshot = {"people": [], "groups": [], "memberships": []}
     people: set[str] = set()
     groups: set[str] = set()
+    group_spns: set[str] = set()
 
     for item in json_array(data["people"]):
         person = json_object(item)
@@ -274,6 +305,43 @@ def read_snapshot(value: object) -> Snapshot:
 
             record["checked_at"] = cast(str | None, checked_at)
 
+        if "posix" in person:
+            if type(person["posix"]) is not bool:
+                raise ValueError("Directory POSIX state is invalid")
+
+            record["posix"] = person["posix"]
+
+        for field in ("gid", "ssh_keys"):
+            if field not in person:
+                continue
+
+            number = person[field]
+
+            if number != "Unknown" and not (
+                type(number) is int
+                and 0 <= number <= 4294967295
+                and (field != "ssh_keys" or number > 0)
+            ):
+                raise ValueError("Directory POSIX number is invalid")
+
+            if field == "gid":
+                record["gid"] = cast(int | Literal["Unknown"], number)
+            else:
+                record["ssh_keys"] = cast(int | Literal["Unknown"], number)
+
+        if "shell" in person:
+            shell = json_string(person["shell"])
+
+            if not shell or len(shell) > 4096 or any(ord(char) < 32 for char in shell):
+                raise ValueError("Directory POSIX shell is invalid")
+
+            record["shell"] = shell
+
+        if any(
+            field in person for field in ("gid", "shell", "ssh_keys")
+        ) and not person.get("posix"):
+            raise ValueError("Directory POSIX fields require a POSIX account")
+
         result["people"].append(record)
 
     for item in json_array(data["groups"]):
@@ -285,14 +353,50 @@ def read_snapshot(value: object) -> Snapshot:
             raise ValueError("Directory group is invalid")
 
         groups.add(identifier)
-        result["groups"].append(
-            {
-                "uuid": identifier,
-                "name": json_string(group["name"]),
-                "description": json_string(group["description"]),
-                "system": system,
-            }
-        )
+        group_record: Group = {
+            "uuid": identifier,
+            "name": json_string(group["name"]),
+            "description": json_string(group["description"]),
+            "system": system,
+        }
+
+        if "spn" in group:
+            spn = _reference(group["spn"])
+
+            if "@" not in spn or spn in group_spns:
+                raise ValueError("Directory group SPN is invalid")
+
+            group_spns.add(spn)
+            group_record["spn"] = spn
+
+        if "entry_manager" in group:
+            group_record["entry_manager"] = _reference(group["entry_manager"])
+
+        if "parents" in group:
+            parents = [_reference(value) for value in json_array(group["parents"])]
+
+            if len(parents) > 5000 or len(set(parents)) != len(parents):
+                raise ValueError("Directory group ancestry is invalid")
+
+            group_record["parents"] = parents
+
+        if "posix" in group:
+            if type(group["posix"]) is not bool:
+                raise ValueError("Directory group POSIX state is invalid")
+
+            group_record["posix"] = group["posix"]
+
+        if "gid" in group:
+            gid = group["gid"]
+
+            if group.get("posix") is not True or (
+                gid != "Unknown" and not (type(gid) is int and 0 <= gid <= 4294967295)
+            ):
+                raise ValueError("Directory group POSIX identifier is invalid")
+
+            group_record["gid"] = cast(int | Literal["Unknown"], gid)
+
+        result["groups"].append(group_record)
 
     edges: set[tuple[str, str]] = set()
 
@@ -368,6 +472,17 @@ def _date(value: str) -> float:
     return parsed.timestamp()
 
 
+def _gid_number(attrs: NativeAttrs) -> int | Literal["Unknown"]:
+    values = attrs.get("gidnumber", [])
+
+    if len(values) > 1 or (
+        values and (not values[0].isdecimal() or not 0 <= int(values[0]) <= 4294967295)
+    ):
+        raise ValueError("Directory POSIX group identifier is invalid")
+
+    return int(values[0]) if values else "Unknown"
+
+
 def snapshot(
     backend: access.Directory,
     now: float | None = None,
@@ -382,6 +497,11 @@ def snapshot(
         for identifier, attrs in groups.items()
         for reference in (identifier, _single(attrs, "spn"))
     }
+    entry_references = references | {
+        reference: identifier
+        for identifier, attrs in people.items()
+        for reference in (identifier, _single(attrs, "spn"))
+    }
     result: Snapshot = {"people": [], "groups": [], "memberships": []}
     credential_summaries = (
         credentials.summaries(backend, people, now) if credentials is not None else {}
@@ -393,15 +513,34 @@ def snapshot(
         if len(descriptions) > 1:
             raise ValueError("Directory group description is ambiguous")
 
-        result["groups"].append(
-            {
-                "uuid": identifier,
-                "name": attrs["name"][0],
-                "description": descriptions[0] if descriptions else "",
-                "system": uuid.UUID(identifier).int < access.NATIVE_UUID_LIMIT
-                or "system" in attrs["class"],
-            }
-        )
+        group_record: Group = {
+            "uuid": identifier,
+            "name": attrs["name"][0],
+            "description": descriptions[0] if descriptions else "",
+            "system": uuid.UUID(identifier).int < access.NATIVE_UUID_LIMIT
+            or "system" in attrs["class"],
+            "spn": _reference(_single(attrs, "spn")),
+            "posix": "posixgroup" in attrs["class"],
+        }
+        managers = attrs.get("entry_managed_by", [])
+
+        if len(managers) > 1:
+            raise ValueError("Directory group entry manager is ambiguous")
+
+        if managers:
+            manager = _reference(managers[0])
+            group_record["entry_manager"] = entry_references.get(manager, manager)
+
+        if "memberof" in attrs:
+            parents = [_reference(value) for value in attrs["memberof"]]
+            group_record["parents"] = sorted(
+                {references.get(parent, parent) for parent in parents}
+            )
+
+        if group_record["posix"]:
+            group_record["gid"] = _gid_number(attrs)
+
+        result["groups"].append(group_record)
 
     for identifier, attrs in sorted(people.items(), key=lambda item: item[1]["name"]):
         if "memberof" not in attrs or "directmemberof" not in attrs:
@@ -438,6 +577,25 @@ def snapshot(
             "email": next(iter(attrs.get("mail", [])), ""),
             "account": account,
         }
+
+        if "posixaccount" in attrs.get("class", []):
+            person["posix"] = True
+            person["gid"] = _gid_number(attrs)
+            shells = attrs.get("loginshell", [])
+
+            if len(shells) > 1 or (
+                shells
+                and (
+                    not shells[0]
+                    or len(shells[0]) > 4096
+                    or any(ord(char) < 32 for char in shells[0])
+                )
+            ):
+                raise ValueError("Directory POSIX shell is invalid")
+
+            person["shell"] = shells[0] if shells else "Unknown"
+            keys = attrs.get("ssh_publickey", [])
+            person["ssh_keys"] = len(keys) if keys else "Unknown"
 
         if identifier in credential_summaries:
             summary = credential_summaries[identifier]

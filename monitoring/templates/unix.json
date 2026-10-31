@@ -1,0 +1,1217 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "managed-unix",
+    "annotations": {
+      "grafana.app/folder": "kanidm"
+    }
+  },
+  "spec": {
+    "annotations": [],
+    "cursorSync": "Off",
+    "editable": false,
+    "elements": {
+      "panel-1": {
+        "kind": "Panel",
+        "spec": {
+          "id": 1,
+          "title": "Observed readers",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "grafana"
+                      },
+                      "spec": {
+                        "refId": "A",
+                        "queryType": "snapshot",
+                        "snapshot": []
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "filterByValue",
+                  "spec": {
+                    "options": {
+                      "filters": [
+                        {
+                          "fieldName": "Client",
+                          "config": {
+                            "id": "regex",
+                            "options": {
+                              "value": "${machine:regex}"
+                            }
+                          }
+                        }
+                      ],
+                      "match": "all",
+                      "type": "include"
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {
+                        "Client": true
+                      },
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.1.8",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "noValue": "Unknown",
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "wrapText": true,
+                    "wrapHeaderText": true,
+                    "minWidth": 90,
+                    "filterable": true,
+                    "inspect": true
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Last check"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "time:MMM D, h:mm A"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 150
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Checks"
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      },
+                      {
+                        "id": "unit",
+                        "value": "none"
+                      },
+                      {
+                        "id": "custom.hideFrom.viz",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Verified"
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      },
+                      {
+                        "id": "unit",
+                        "value": "none"
+                      },
+                      {
+                        "id": "custom.hideFrom.viz",
+                        "value": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "showHeader": true,
+                "cellHeight": "md",
+                "footer": {
+                  "show": false
+                },
+                "enablePagination": true,
+                "sortBy": [
+                  {
+                    "displayName": "Last check",
+                    "desc": true
+                  }
+                ]
+              }
+            }
+          },
+          "description": ""
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "id": 2,
+          "title": "Recent activity",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "grafana"
+                      },
+                      "spec": {
+                        "refId": "A",
+                        "queryType": "snapshot",
+                        "snapshot": []
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "filterByValue",
+                  "spec": {
+                    "options": {
+                      "filters": [
+                        {
+                          "fieldName": "Client",
+                          "config": {
+                            "id": "regex",
+                            "options": {
+                              "value": "${machine:regex}"
+                            }
+                          }
+                        }
+                      ],
+                      "match": "all",
+                      "type": "include"
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {
+                        "Client": true
+                      },
+                      "indexByName": {
+                        "Client": 0,
+                        "Time": 1,
+                        "User": 2,
+                        "Reader": 3,
+                        "Result": 4
+                      },
+                      "renameByName": {}
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.1.8",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "noValue": "Unknown",
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "wrapText": false,
+                    "wrapHeaderText": false,
+                    "minWidth": 90,
+                    "filterable": true,
+                    "inspect": true
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Time"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "time:MM/DD HH:mm"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 100
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Result"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "string"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 170
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Reader"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "string"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 160
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "User"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.minWidth",
+                        "value": 110
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "showHeader": true,
+                "cellHeight": "sm",
+                "footer": {
+                  "show": false
+                },
+                "enablePagination": true,
+                "sortBy": [
+                  {
+                    "displayName": "Time",
+                    "desc": true
+                  }
+                ]
+              }
+            }
+          },
+          "description": ""
+        }
+      },
+      "panel-3": {
+        "kind": "Panel",
+        "spec": {
+          "id": 3,
+          "title": "POSIX users",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "grafana"
+                      },
+                      "spec": {
+                        "refId": "A",
+                        "queryType": "snapshot",
+                        "snapshot": []
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.1.8",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "noValue": "Unknown",
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "wrapText": false,
+                    "wrapHeaderText": false,
+                    "minWidth": 90,
+                    "filterable": true,
+                    "inspect": true
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "GID"
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      },
+                      {
+                        "id": "unit",
+                        "value": "none"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "SSH keys"
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      },
+                      {
+                        "id": "unit",
+                        "value": "none"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "showHeader": true,
+                "cellHeight": "md",
+                "footer": {
+                  "show": false
+                },
+                "enablePagination": true,
+                "sortBy": [
+                  {
+                    "displayName": "User",
+                    "desc": false
+                  }
+                ]
+              }
+            }
+          },
+          "description": ""
+        }
+      },
+      "panel-4": {
+        "kind": "Panel",
+        "spec": {
+          "id": 4,
+          "title": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "grafana"
+                      },
+                      "spec": {
+                        "refId": "A",
+                        "queryType": "snapshot",
+                        "snapshot": []
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "filterByValue",
+                  "spec": {
+                    "options": {
+                      "filters": [
+                        {
+                          "fieldName": "Client",
+                          "config": {
+                            "id": "equal",
+                            "options": {
+                              "value": "${machine:raw}"
+                            }
+                          }
+                        }
+                      ],
+                      "match": "all",
+                      "type": "include"
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {
+                        "Client": true
+                      },
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unknown",
+                  "unit": "short",
+                  "displayName": "Readers"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 1000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 10000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 1000000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value_and_name",
+                "wideLayout": false
+              }
+            },
+            "version": "13.1.8"
+          },
+          "description": "Last 30 days"
+        }
+      },
+      "panel-5": {
+        "kind": "Panel",
+        "spec": {
+          "id": 5,
+          "title": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "grafana"
+                      },
+                      "spec": {
+                        "refId": "A",
+                        "queryType": "snapshot",
+                        "snapshot": []
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unknown",
+                  "unit": "short",
+                  "displayName": "Unix users"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 1000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 10000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 1000000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value_and_name",
+                "wideLayout": false
+              }
+            },
+            "version": "13.1.8"
+          },
+          "description": "Configured POSIX users"
+        }
+      },
+      "panel-6": {
+        "kind": "Panel",
+        "spec": {
+          "id": 6,
+          "title": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "grafana"
+                      },
+                      "spec": {
+                        "refId": "A",
+                        "queryType": "snapshot",
+                        "snapshot": []
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "filterByValue",
+                  "spec": {
+                    "options": {
+                      "filters": [
+                        {
+                          "fieldName": "Client",
+                          "config": {
+                            "id": "equal",
+                            "options": {
+                              "value": "${machine:raw}"
+                            }
+                          }
+                        }
+                      ],
+                      "match": "all",
+                      "type": "include"
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {
+                        "Client": true
+                      },
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unknown",
+                  "unit": "short",
+                  "displayName": "Credential checks"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 1000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 10000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 1000000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value_and_name",
+                "wideLayout": false
+              }
+            },
+            "version": "13.1.8"
+          },
+          "description": "Last 30 days"
+        }
+      },
+      "panel-7": {
+        "kind": "Panel",
+        "spec": {
+          "id": 7,
+          "title": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "grafana"
+                      },
+                      "spec": {
+                        "refId": "A",
+                        "queryType": "snapshot",
+                        "snapshot": []
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "filterByValue",
+                  "spec": {
+                    "options": {
+                      "filters": [
+                        {
+                          "fieldName": "Client",
+                          "config": {
+                            "id": "equal",
+                            "options": {
+                              "value": "${machine:raw}"
+                            }
+                          }
+                        }
+                      ],
+                      "match": "all",
+                      "type": "include"
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {
+                        "Client": true
+                      },
+                      "indexByName": {},
+                      "renameByName": {}
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "Unknown",
+                  "unit": "short",
+                  "displayName": "Verified checks"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 1000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 10000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 1000000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "colorMode": "none",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "value_and_name",
+                "wideLayout": false
+              }
+            },
+            "version": "13.1.8"
+          },
+          "description": "Last 30 days"
+        }
+      }
+    },
+    "layout": {
+      "kind": "RowsLayout",
+      "spec": {
+        "rows": [
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 4,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 220,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 240,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-4"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-5"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-6"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-7"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-1"
+                        },
+                        "x": 0,
+                        "y": 0,
+                        "width": 8,
+                        "height": 14
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-2"
+                        },
+                        "x": 8,
+                        "y": 0,
+                        "width": 16,
+                        "height": 14
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-3"
+                        },
+                        "x": 0,
+                        "y": 14,
+                        "width": 24,
+                        "height": 10
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "links": [],
+    "liveNow": false,
+    "preload": false,
+    "tags": [],
+    "timeSettings": {
+      "timezone": "America/Los_Angeles",
+      "from": "now-30d",
+      "to": "now",
+      "autoRefresh": "1m",
+      "autoRefreshIntervals": [
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h"
+      ],
+      "hideTimepicker": true,
+      "fiscalYearStartMonth": 0,
+      "weekStart": "monday"
+    },
+    "title": "Managed Unix",
+    "variables": [
+      {
+        "kind": "CustomVariable",
+        "spec": {
+          "name": "machine",
+          "label": "Reader",
+          "query": "[]",
+          "valuesFormat": "json",
+          "current": {
+            "text": "All observed readers",
+            "value": "$__all"
+          },
+          "options": [],
+          "multi": false,
+          "includeAll": true,
+          "hide": "dontHide",
+          "skipUrlSync": false,
+          "allowCustomValue": false,
+          "description": "",
+          "allValue": ".*"
+        }
+      }
+    ]
+  }
+}

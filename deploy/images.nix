@@ -136,6 +136,8 @@ let
     "monitoring/dashboards/demographics.json"
     "monitoring/dashboards/usage.json"
     "monitoring/templates/directory.json"
+    "monitoring/templates/referrals.json"
+    "monitoring/templates/unix.json"
     "monitoring/provisioning/dashboards.yaml"
     "monitoring/provisioning/datasources.yaml"
     "monitoring/prometheus/alerts.yml"

@@ -1,0 +1,289 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2",
+  "kind": "DashboardWithAccessInfo",
+  "metadata": {
+    "annotations": {
+      "grafana.app/folder": "identity"
+    },
+    "name": "member-referrals"
+  },
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "builtIn": true,
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "legacyOptions": {
+            "type": "dashboard"
+          },
+          "name": "Annotations & Alerts",
+          "query": {
+            "datasource": {
+              "name": "-- Grafana --"
+            },
+            "group": "grafana",
+            "kind": "DataQuery",
+            "spec": {},
+            "version": "v0"
+          }
+        }
+      }
+    ],
+    "cursorSync": "Crosshair",
+    "editable": false,
+    "elements": {
+      "panel-12": {
+        "kind": "Panel",
+        "spec": {
+          "id": 12,
+          "title": "Other referrals",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "grafana"
+                      },
+                      "spec": {
+                        "refId": "A",
+                        "queryType": "snapshot",
+                        "snapshot": [
+                          {
+                            "schema": {
+                              "name": "Other referrals",
+                              "refId": "A",
+                              "fields": [
+                                {
+                                  "name": "Response",
+                                  "type": "string"
+                                },
+                                {
+                                  "name": "Users",
+                                  "type": "number"
+                                }
+                              ]
+                            },
+                            "data": {
+                              "values": [
+                                [],
+                                []
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.1.8",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "noValue": "No other referrals",
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "wrapText": true,
+                    "wrapHeaderText": true,
+                    "minWidth": 70,
+                    "filterable": false,
+                    "inspect": false
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Response"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "string"
+                      },
+                      {
+                        "id": "custom.wrapText",
+                        "value": true
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Users"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "short"
+                      },
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      },
+                      {
+                        "id": "min",
+                        "value": 0
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 90
+                      },
+                      {
+                        "id": "custom.align",
+                        "value": "right"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "showHeader": true,
+                "cellHeight": "sm",
+                "enablePagination": true,
+                "footer": {
+                  "show": false
+                },
+                "sortBy": [
+                  {
+                    "displayName": "Users",
+                    "desc": true
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "layout": {
+      "kind": "RowsLayout",
+      "spec": {
+        "rows": [
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "",
+              "hideHeader": true,
+              "collapse": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "AutoGridLayout",
+                "spec": {
+                  "maxColumnCount": 1,
+                  "columnWidthMode": "custom",
+                  "columnWidth": 560,
+                  "rowHeightMode": "custom",
+                  "rowHeight": 420,
+                  "fillScreen": false,
+                  "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-12"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "conditionalRendering": {
+                "kind": "ConditionalRenderingGroup",
+                "spec": {
+                  "visibility": "show",
+                  "condition": "and",
+                  "items": []
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "links": [],
+    "liveNow": false,
+    "preload": false,
+    "tags": [],
+    "timeSettings": {
+      "autoRefresh": "5m",
+      "autoRefreshIntervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "fiscalYearStartMonth": 0,
+      "from": "now-24h",
+      "hideTimepicker": true,
+      "timezone": "America/Los_Angeles",
+      "to": "now"
+    },
+    "title": "Other referrals",
+    "variables": [
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "allowCustomValue": false,
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "definition": "query_result(identity_registration_period_info and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1))",
+          "hide": "dontHide",
+          "includeAll": false,
+          "label": "Year",
+          "multi": false,
+          "name": "registration_year",
+          "options": [],
+          "query": {
+            "datasource": {
+              "name": "identity-prometheus"
+            },
+            "group": "prometheus",
+            "kind": "DataQuery",
+            "version": "v0",
+            "spec": {
+              "__legacyStringValue": "query_result(identity_registration_period_info and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1))"
+            }
+          },
+          "refresh": "onDashboardLoad",
+          "regex": "/period=\"([^\"]+)\"/",
+          "skipUrlSync": false,
+          "sort": "numericalDesc"
+        }
+      }
+    ]
+  }
+}

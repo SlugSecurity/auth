@@ -16,7 +16,7 @@
         "kind": "Panel",
         "spec": {
           "id": 1,
-          "title": "Person",
+          "title": "User details",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -85,7 +85,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.2",
+            "version": "13.1.8",
             "spec": {
               "fieldConfig": {
                 "defaults": {
@@ -97,7 +97,7 @@
                     },
                     "wrapText": true,
                     "wrapHeaderText": true,
-                    "minWidth": 100,
+                    "minWidth": 80,
                     "filterable": false,
                     "inspect": true
                   }
@@ -119,12 +119,11 @@
               },
               "options": {
                 "showHeader": false,
-                "cellHeight": "sm",
+                "cellHeight": "md",
                 "footer": {
                   "show": false
                 },
-                "enablePagination": false,
-                "maxRowHeight": 96
+                "enablePagination": false
               }
             }
           },
@@ -204,7 +203,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.2",
+            "version": "13.1.8",
             "spec": {
               "fieldConfig": {
                 "defaults": {
@@ -216,7 +215,7 @@
                     },
                     "wrapText": true,
                     "wrapHeaderText": true,
-                    "minWidth": 100,
+                    "minWidth": 80,
                     "filterable": false,
                     "inspect": true
                   }
@@ -238,11 +237,11 @@
               },
               "options": {
                 "showHeader": true,
-                "cellHeight": "sm",
+                "cellHeight": "md",
                 "footer": {
                   "show": false
                 },
-                "enablePagination": false,
+                "enablePagination": true,
                 "sortBy": [
                   {
                     "displayName": "Group",
@@ -259,7 +258,7 @@
         "kind": "Panel",
         "spec": {
           "id": 3,
-          "title": "People",
+          "title": "Users",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -328,7 +327,7 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.2",
+            "version": "13.1.8",
             "spec": {
               "fieldConfig": {
                 "defaults": {
@@ -340,7 +339,7 @@
                     },
                     "wrapText": true,
                     "wrapHeaderText": true,
-                    "minWidth": 100,
+                    "minWidth": 80,
                     "filterable": false,
                     "inspect": true
                   }
@@ -349,7 +348,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Account"
+                      "options": "Status"
                     },
                     "properties": [
                       {
@@ -374,14 +373,14 @@
               },
               "options": {
                 "showHeader": true,
-                "cellHeight": "sm",
+                "cellHeight": "md",
                 "footer": {
                   "show": false
                 },
                 "enablePagination": true,
                 "sortBy": [
                   {
-                    "displayName": "Member",
+                    "displayName": "User",
                     "desc": false
                   }
                 ]
@@ -395,7 +394,7 @@
         "kind": "Panel",
         "spec": {
           "id": 4,
-          "title": "T shirt sizes",
+          "title": "T-shirt size",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -456,74 +455,262 @@
                       "renameByName": {}
                     }
                   }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "formatString",
+                  "spec": {
+                    "options": {
+                      "stringField": "Size",
+                      "outputFormat": "Snake Case"
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "rowsToFields",
+                  "spec": {
+                    "options": {
+                      "mappings": [
+                        {
+                          "fieldName": "Size",
+                          "handlerKey": "field.name"
+                        },
+                        {
+                          "fieldName": "Users",
+                          "handlerKey": "field.value"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "filterFieldsByName",
+                  "spec": {
+                    "options": {
+                      "include": {
+                        "pattern": ".*"
+                      }
+                    }
+                  }
                 }
               ],
               "queryOptions": {}
             }
           },
           "vizConfig": {
+            "group": "piechart",
             "kind": "VizConfig",
-            "group": "barchart",
-            "version": "13.2.2",
             "spec": {
               "fieldConfig": {
                 "defaults": {
-                  "noValue": "No people",
-                  "unit": "locale",
-                  "min": 0,
-                  "decimals": 0,
                   "color": {
-                    "mode": "fixed",
-                    "fixedColor": "blue"
+                    "mode": "palette-classic"
                   },
-                  "custom": {
-                    "axisCenteredZero": false,
-                    "axisLabel": "",
-                    "fillOpacity": 85,
-                    "gradientMode": "none",
-                    "lineWidth": 0
-                  }
+                  "decimals": 0,
+                  "min": 0,
+                  "noValue": "No data",
+                  "unit": "short"
                 },
                 "overrides": [
                   {
                     "matcher": {
-                      "id": "byType",
-                      "options": "number"
+                      "id": "byName",
+                      "options": "xs"
                     },
                     "properties": [
                       {
-                        "id": "custom.axisPlacement",
-                        "value": "hidden"
+                        "id": "displayName",
+                        "value": "XS"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#5794F2",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "s"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "S"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#FF9830",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "m"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "M"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#73BF69",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "l"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "L"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#B877D9",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "xl"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "XL"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#56D4DD",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "xxl"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "XXL"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#F2495C",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "other"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Other"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#FADE2A",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "not_provided"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Not provided"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#8E8E8E",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "unavailable"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Unavailable"
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "#8E8E8E",
+                          "mode": "fixed"
+                        }
                       }
                     ]
                   }
                 ]
               },
               "options": {
-                "orientation": "horizontal",
-                "xField": "Size",
-                "xTickLabelRotation": 0,
-                "xTickLabelSpacing": 0,
-                "showValue": "always",
-                "stacking": "none",
-                "groupWidth": 0.75,
-                "barWidth": 0.75,
-                "barRadius": 0,
-                "fullHighlight": true,
+                "displayLabels": [],
                 "legend": {
-                  "showLegend": false,
                   "displayMode": "list",
-                  "placement": "bottom"
+                  "placement": "bottom",
+                  "showLegend": true,
+                  "values": []
                 },
+                "pieType": "donut",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "sort": "desc",
                 "tooltip": {
                   "mode": "single",
                   "sort": "desc"
-                },
-                "text": {
-                  "valueSize": 14
                 }
               }
-            }
+            },
+            "version": "13.1.8"
           },
           "description": ""
         }
@@ -532,7 +719,210 @@
         "kind": "Panel",
         "spec": {
           "id": 5,
-          "title": "Recent app sign ins",
+          "title": "Recent activity",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "grafana"
+                      },
+                      "spec": {
+                        "refId": "A",
+                        "queryType": "snapshot",
+                        "snapshot": []
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "filterByValue",
+                  "spec": {
+                    "options": {
+                      "filters": [
+                        {
+                          "fieldName": "Selection",
+                          "config": {
+                            "id": "equal",
+                            "options": {
+                              "value": "${find}"
+                            }
+                          }
+                        }
+                      ],
+                      "match": "all",
+                      "type": "include"
+                    }
+                  }
+                },
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {
+                        "Selection": true
+                      },
+                      "indexByName": {
+                        "Selection": 0,
+                        "Time": 1,
+                        "User": 2,
+                        "App": 3,
+                        "Result": 4
+                      },
+                      "renameByName": {}
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.1.8",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "noValue": "No recorded activity",
+                  "custom": {
+                    "align": "left",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "wrapText": false,
+                    "wrapHeaderText": false,
+                    "minWidth": 80,
+                    "filterable": false,
+                    "inspect": true
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Time"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "time:MM/DD HH:mm"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 100
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "App"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "string"
+                      },
+                      {
+                        "id": "mappings",
+                        "value": [
+                          {
+                            "type": "value",
+                            "options": {
+                              "account_portal": {
+                                "text": "Account portal"
+                              },
+                              "netbird": {
+                                "text": "NetBird"
+                              },
+                              "proxmox": {
+                                "text": "Proxmox"
+                              },
+                              "grafana": {
+                                "text": "Grafana"
+                              },
+                              "managed_unix": {
+                                "text": "Managed Unix"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "id": "custom.minWidth",
+                        "value": 280
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Result"
+                    },
+                    "properties": [
+                      {
+                        "id": "unit",
+                        "value": "string"
+                      },
+                      {
+                        "id": "custom.width",
+                        "value": 160
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "User"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 110
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "showHeader": true,
+                "cellHeight": "sm",
+                "footer": {
+                  "show": false
+                },
+                "enablePagination": false,
+                "sortBy": [
+                  {
+                    "displayName": "Time",
+                    "desc": true
+                  }
+                ]
+              }
+            }
+          },
+          "description": ""
+        }
+      },
+      "panel-6": {
+        "kind": "Panel",
+        "spec": {
+          "id": 6,
+          "title": "Group details",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -601,11 +991,11 @@
           "vizConfig": {
             "kind": "VizConfig",
             "group": "table",
-            "version": "13.2.2",
+            "version": "13.1.8",
             "spec": {
               "fieldConfig": {
                 "defaults": {
-                  "noValue": "No sign ins in the last 30 days",
+                  "noValue": "Not provided",
                   "custom": {
                     "align": "left",
                     "cellOptions": {
@@ -613,7 +1003,7 @@
                     },
                     "wrapText": true,
                     "wrapHeaderText": true,
-                    "minWidth": 100,
+                    "minWidth": 80,
                     "filterable": false,
                     "inspect": true
                   }
@@ -622,38 +1012,28 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "Time"
+                      "options": "Field"
                     },
                     "properties": [
                       {
                         "id": "custom.width",
-                        "value": 190
-                      },
-                      {
-                        "id": "unit",
-                        "value": "time:MMM D, YYYY h:mm A"
+                        "value": 152
                       }
                     ]
                   }
                 ]
               },
               "options": {
-                "showHeader": true,
-                "cellHeight": "sm",
+                "showHeader": false,
+                "cellHeight": "md",
                 "footer": {
                   "show": false
                 },
-                "enablePagination": false,
-                "sortBy": [
-                  {
-                    "displayName": "Time",
-                    "desc": true
-                  }
-                ]
+                "enablePagination": false
               }
             }
           },
-          "description": "Successful app sign ins in the last 30 days"
+          "description": ""
         }
       }
     },
@@ -692,7 +1072,7 @@
                   "columnWidthMode": "custom",
                   "columnWidth": 500,
                   "rowHeightMode": "custom",
-                  "rowHeight": 450,
+                  "rowHeight": 560,
                   "fillScreen": false,
                   "items": [
                     {
@@ -710,6 +1090,23 @@
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-5"
+                        },
+                        "conditionalRendering": {
+                          "kind": "ConditionalRenderingGroup",
+                          "spec": {
+                            "visibility": "show",
+                            "condition": "and",
+                            "items": [
+                              {
+                                "kind": "ConditionalRenderingVariable",
+                                "spec": {
+                                  "variable": "find",
+                                  "operator": "matches",
+                                  "value": "^person:"
+                                }
+                              }
+                            ]
+                          }
                         }
                       }
                     }
@@ -749,7 +1146,7 @@
                   "columnWidthMode": "custom",
                   "columnWidth": 500,
                   "rowHeightMode": "custom",
-                  "rowHeight": 360,
+                  "rowHeight": 420,
                   "fillScreen": false,
                   "items": [
                     {
@@ -805,7 +1202,7 @@
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
-                          "name": "panel-3"
+                          "name": "panel-6"
                         }
                       }
                     }
@@ -839,22 +1236,33 @@
                 }
               },
               "layout": {
-                "kind": "AutoGridLayout",
+                "kind": "GridLayout",
                 "spec": {
-                  "maxColumnCount": 1,
-                  "columnWidthMode": "custom",
-                  "columnWidth": 620,
-                  "rowHeightMode": "custom",
-                  "rowHeight": 320,
-                  "fillScreen": false,
                   "items": [
                     {
-                      "kind": "AutoGridLayoutItem",
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-3"
+                        },
+                        "x": 0,
+                        "y": 0,
+                        "width": 18,
+                        "height": 10
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
                       "spec": {
                         "element": {
                           "kind": "ElementReference",
                           "name": "panel-4"
-                        }
+                        },
+                        "x": 18,
+                        "y": 0,
+                        "width": 6,
+                        "height": 10
                       }
                     }
                   ]
@@ -896,10 +1304,10 @@
         "spec": {
           "name": "find",
           "label": "Find",
-          "query": "[{\"text\":\"Choose a person or group\",\"value\":\"none\"}]",
+          "query": "[{\"text\":\"Choose a user or group\",\"value\":\"none\"}]",
           "valuesFormat": "json",
           "current": {
-            "text": "Choose a person or group",
+            "text": "Choose a user or group",
             "value": "none"
           },
           "options": [],
@@ -908,7 +1316,7 @@
           "hide": "dontHide",
           "skipUrlSync": false,
           "allowCustomValue": false,
-          "description": "Search for a person or group"
+          "description": ""
         }
       }
     ]

@@ -1,2 +1,1 @@
-# diff context prefixes require leading spaces
 service/branding/kanidm-1.11.2/*.patch -whitespace

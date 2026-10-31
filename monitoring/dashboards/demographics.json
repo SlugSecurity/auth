@@ -53,7 +53,7 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "identity_registration_count and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "expr": "(identity_registration_count and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)) and on(job, instance) identity_registration_period_info{period=\"$registration_year\"}",
                         "instant": true,
                         "legendFormat": "",
                         "range": false
@@ -68,10 +68,10 @@
               "transformations": []
             }
           },
-          "description": "Submitted registrations for the current academic year, including paused accounts",
+          "description": "",
           "id": 1,
           "links": [],
-          "title": "Current registrations",
+          "title": "",
           "vizConfig": {
             "group": "stat",
             "kind": "VizConfig",
@@ -81,9 +81,59 @@
                   "decimals": 0,
                   "min": 0,
                   "noValue": "Unavailable",
-                  "unit": "short"
+                  "unit": "short",
+                  "displayName": "Registered users"
                 },
-                "overrides": []
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 1000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 10000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byValue",
+                      "options": {
+                        "reducer": "lastNotNull",
+                        "op": "gte",
+                        "value": 1000000
+                      }
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 1
+                      }
+                    ]
+                  }
+                ]
               },
               "options": {
                 "colorMode": "none",
@@ -97,11 +147,11 @@
                   "fields": "",
                   "values": false
                 },
-                "textMode": "value",
+                "textMode": "value_and_name",
                 "wideLayout": true
               }
             },
-            "version": ""
+            "version": "13.1.8"
           }
         }
       },
@@ -123,7 +173,7 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sort_desc(identity_registration_demographics{question=\"heard_about\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "expr": "(sort_desc(identity_registration_demographics{question=\"heard_about\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)) and on(job, instance) identity_registration_period_info{period=\"$registration_year\"}",
                         "instant": true,
                         "legendFormat": "{{answer}}",
                         "range": false
@@ -170,7 +220,7 @@
                       },
                       "renameByName": {
                         "answer": "Source",
-                        "identity_registration_demographics": "People"
+                        "identity_registration_demographics": "Users"
                       }
                     }
                   }
@@ -183,7 +233,7 @@
                       "sort": [
                         {
                           "desc": true,
-                          "field": "People"
+                          "field": "Users"
                         }
                       ]
                     }
@@ -192,13 +242,13 @@
               ]
             }
           },
-          "description": "Multiple selections per registrant",
+          "description": "Multiple selections",
           "id": 10,
           "links": [
             {
-              "targetBlank": false,
-              "title": "Kanidm lookup",
-              "url": "/d/kanidm-lookup"
+              "title": "Other referrals",
+              "url": "/d/member-referrals?orgId=${__org.id}&var-registration_year=${registration_year:percentencode}",
+              "targetBlank": false
             }
           ],
           "title": "Referral sources",
@@ -213,7 +263,7 @@
                     "cellOptions": {
                       "type": "auto"
                     },
-                    "filterable": true,
+                    "filterable": false,
                     "inspect": true,
                     "wrapHeaderText": true,
                     "wrapText": true,
@@ -283,8 +333,7 @@
                       {
                         "id": "custom.cellOptions",
                         "value": {
-                          "type": "markdown",
-                          "dynamicHeight": true
+                          "type": "auto"
                         }
                       }
                     ]
@@ -292,7 +341,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "People"
+                      "options": "Users"
                     },
                     "properties": [
                       {
@@ -313,7 +362,7 @@
                       },
                       {
                         "id": "custom.width",
-                        "value": 100
+                        "value": 80
                       }
                     ]
                   }
@@ -329,12 +378,12 @@
                 "sortBy": [
                   {
                     "desc": true,
-                    "displayName": "People"
+                    "displayName": "Users"
                   }
                 ]
               }
             },
-            "version": ""
+            "version": "13.1.8"
           }
         }
       },
@@ -356,7 +405,7 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "topk(10, identity_registration_demographics{question=\"studies\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "expr": "(topk(10, identity_registration_demographics{question=\"studies\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)) and on(job, instance) identity_registration_period_info{period=\"$registration_year\"}",
                         "instant": true,
                         "legendFormat": "{{answer}}",
                         "range": false
@@ -403,7 +452,7 @@
                       },
                       "renameByName": {
                         "answer": "Field of study",
-                        "identity_registration_demographics": "People"
+                        "identity_registration_demographics": "Users"
                       }
                     }
                   }
@@ -416,7 +465,7 @@
                       "sort": [
                         {
                           "desc": true,
-                          "field": "People"
+                          "field": "Users"
                         }
                       ]
                     }
@@ -425,7 +474,7 @@
               ]
             }
           },
-          "description": "Multiple selections per registrant",
+          "description": "Multiple selections",
           "id": 11,
           "links": [],
           "title": "Top 10 fields of study",
@@ -663,8 +712,7 @@
                       {
                         "id": "custom.cellOptions",
                         "value": {
-                          "type": "markdown",
-                          "dynamicHeight": true
+                          "type": "auto"
                         }
                       }
                     ]
@@ -672,7 +720,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "People"
+                      "options": "Users"
                     },
                     "properties": [
                       {
@@ -700,7 +748,7 @@
                 ]
               },
               "options": {
-                "cellHeight": "sm",
+                "cellHeight": "md",
                 "enablePagination": false,
                 "footer": {
                   "show": false
@@ -709,91 +757,12 @@
                 "sortBy": [
                   {
                     "desc": true,
-                    "displayName": "People"
+                    "displayName": "Users"
                   }
                 ]
               }
             },
-            "version": ""
-          }
-        }
-      },
-      "panel-2": {
-        "kind": "Panel",
-        "spec": {
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "hidden": false,
-                    "query": {
-                      "datasource": {
-                        "name": "identity-prometheus"
-                      },
-                      "group": "prometheus",
-                      "kind": "DataQuery",
-                      "spec": {
-                        "expr": "identity_registration_period_info and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
-                        "instant": true,
-                        "legendFormat": "{{period}}",
-                        "range": false
-                      },
-                      "version": "v0"
-                    },
-                    "refId": "A"
-                  }
-                }
-              ],
-              "queryOptions": {},
-              "transformations": [
-                {
-                  "group": "labelsToFields",
-                  "kind": "Transformation",
-                  "spec": {
-                    "options": {
-                      "keepLabels": [
-                        "period"
-                      ],
-                      "mode": "columns"
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          "id": 2,
-          "links": [],
-          "title": "Registration year",
-          "vizConfig": {
-            "group": "stat",
-            "kind": "VizConfig",
-            "spec": {
-              "fieldConfig": {
-                "defaults": {
-                  "noValue": "Unavailable"
-                },
-                "overrides": []
-              },
-              "options": {
-                "colorMode": "none",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "/^period$/",
-                  "values": false
-                },
-                "textMode": "value",
-                "wideLayout": true
-              }
-            },
-            "version": ""
+            "version": "13.1.8"
           }
         }
       },
@@ -815,7 +784,7 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sort_desc(identity_registration_demographics{question=\"gender\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "expr": "(sort_desc(identity_registration_demographics{question=\"gender\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)) and on(job, instance) identity_registration_period_info{period=\"$registration_year\"}",
                         "instant": true,
                         "legendFormat": "{{answer}}",
                         "range": false
@@ -981,13 +950,10 @@
               "options": {
                 "displayLabels": [],
                 "legend": {
-                  "displayMode": "table",
+                  "displayMode": "list",
                   "placement": "bottom",
                   "showLegend": true,
-                  "values": [
-                    "value",
-                    "percent"
-                  ]
+                  "values": []
                 },
                 "pieType": "donut",
                 "reduceOptions": {
@@ -1004,7 +970,7 @@
                 }
               }
             },
-            "version": ""
+            "version": "13.1.8"
           }
         }
       },
@@ -1026,7 +992,7 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sort_desc(identity_registration_demographics{question=\"lgbtq\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "expr": "(sort_desc(identity_registration_demographics{question=\"lgbtq\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)) and on(job, instance) identity_registration_period_info{period=\"$registration_year\"}",
                         "instant": true,
                         "legendFormat": "{{answer}}",
                         "range": false
@@ -1154,13 +1120,10 @@
               "options": {
                 "displayLabels": [],
                 "legend": {
-                  "displayMode": "table",
+                  "displayMode": "list",
                   "placement": "bottom",
                   "showLegend": true,
-                  "values": [
-                    "value",
-                    "percent"
-                  ]
+                  "values": []
                 },
                 "pieType": "donut",
                 "reduceOptions": {
@@ -1177,7 +1140,7 @@
                 }
               }
             },
-            "version": ""
+            "version": "13.1.8"
           }
         }
       },
@@ -1199,7 +1162,7 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sort_desc(identity_registration_demographics{question=\"veteran\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "expr": "(sort_desc(identity_registration_demographics{question=\"veteran\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)) and on(job, instance) identity_registration_period_info{period=\"$registration_year\"}",
                         "instant": true,
                         "legendFormat": "{{answer}}",
                         "range": false
@@ -1327,13 +1290,10 @@
               "options": {
                 "displayLabels": [],
                 "legend": {
-                  "displayMode": "table",
+                  "displayMode": "list",
                   "placement": "bottom",
                   "showLegend": true,
-                  "values": [
-                    "value",
-                    "percent"
-                  ]
+                  "values": []
                 },
                 "pieType": "donut",
                 "reduceOptions": {
@@ -1350,7 +1310,7 @@
                 }
               }
             },
-            "version": ""
+            "version": "13.1.8"
           }
         }
       },
@@ -1372,7 +1332,7 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sort_desc(identity_registration_demographics{question=\"school_level\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "expr": "(sort_desc(identity_registration_demographics{question=\"school_level\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)) and on(job, instance) identity_registration_period_info{period=\"$registration_year\"}",
                         "instant": true,
                         "legendFormat": "{{answer}}",
                         "range": false
@@ -1405,235 +1365,27 @@
           "links": [],
           "title": "School level",
           "vizConfig": {
-            "group": "bargauge",
             "kind": "VizConfig",
+            "group": "volkovlabs-echarts-panel",
+            "version": "7.2.5",
             "spec": {
               "fieldConfig": {
                 "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "decimals": 0,
-                  "min": 0,
-                  "noValue": "Unavailable",
-                  "unit": "short"
+                  "min": 0
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "freshman"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Freshman"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#5794F2",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "sophomore"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Sophomore"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#FF9830",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "junior"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Junior"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#73BF69",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "senior"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Senior"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#B877D9",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "masters"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Master's student"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#56D4DD",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "phd"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "PhD student"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#F2495C",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "other"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Other"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#FADE2A",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "alumni"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Alumni"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#FF73CB",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "nonstudent"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Nonstudent"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#8AB8FF",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "not_provided"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "Not provided"
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "#8E8E8E",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               },
               "options": {
-                "displayMode": "basic",
-                "orientation": "horizontal",
-                "sizing": "manual",
-                "minVizHeight": 32,
-                "maxVizHeight": 40,
-                "minVizWidth": 8,
-                "namePlacement": "top",
-                "text": {
-                  "titleSize": 14
+                "renderer": "canvas",
+                "map": "none",
+                "editorMode": "code",
+                "themeEditor": {
+                  "name": "default",
+                  "config": "{}"
                 },
-                "valueMode": "text",
-                "showUnfilled": true,
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
-                }
+                "getOption": "const choices = {\n  \"freshman\": {\n    \"name\": \"Freshman\",\n    \"color\": \"#5794F2\"\n  },\n  \"sophomore\": {\n    \"name\": \"Sophomore\",\n    \"color\": \"#FF9830\"\n  },\n  \"junior\": {\n    \"name\": \"Junior\",\n    \"color\": \"#73BF69\"\n  },\n  \"senior\": {\n    \"name\": \"Senior\",\n    \"color\": \"#B877D9\"\n  },\n  \"masters\": {\n    \"name\": \"Master's student\",\n    \"color\": \"#56D4DD\"\n  },\n  \"phd\": {\n    \"name\": \"PhD student\",\n    \"color\": \"#F2495C\"\n  },\n  \"other\": {\n    \"name\": \"Other\",\n    \"color\": \"#FADE2A\"\n  },\n  \"alumni\": {\n    \"name\": \"Alumni\",\n    \"color\": \"#FF73CB\"\n  },\n  \"nonstudent\": {\n    \"name\": \"Nonstudent\",\n    \"color\": \"#8AB8FF\"\n  },\n  \"not_provided\": {\n    \"name\": \"Not provided\",\n    \"color\": \"#8E8E8E\"\n  }\n};\nconst fields = context.panel.data.series.flatMap((series) => series.fields.filter((field) => field.type === 'number'));\nconst rows = fields.every((field) => field.values.length === 1) ? fields.map((field) => {\n  const key = field.labels?.answer || field.name;\n  const choice = Object.hasOwn(choices, key) ? choices[key] : { name: key, color: '#8AB8FF' };\n  return { ...choice, count: field.values[0] };\n}) : [];\nconst theme = context.grafana.theme;\nconst textColor = theme.colors.text.primary;\nconst labelColor = theme.isDark ? '#FFFFFF' : textColor;\n\nif (rows.length === 0 || rows.some((row) => !Number.isSafeInteger(row.count) || row.count < 0)) {\n  return { graphic: { type: 'text', left: 'center', top: 'middle', style: { text: 'Unavailable', fill: textColor } } };\n}\n\nconst maximum = Math.max(1, ...rows.map((row) => row.count));\nconst summary = (row) => `{count|${row.count}}`;\nconst detail = (row) => `${row.name}\\nUsers: ${row.count}`;\nconst track = rows.map(() => maximum);\nconst carrier = {\n  type: 'bar', barGap: '-100%', barWidth: '80%', barMaxWidth: 40,\n  data: track, silent: true, z: 3,\n  itemStyle: { color: 'transparent' }, tooltip: { show: false }, emphasis: { disabled: true },\n};\nreturn {\n  animation: false,\n  backgroundColor: 'transparent',\n  aria: { enabled: true, label: { description: rows.map(detail).join(', ') } },\n  grid: { left: 4, right: 4, top: 4, bottom: 4 },\n  xAxis: { type: 'value', min: 0, max: maximum, show: false },\n  yAxis: { type: 'category', inverse: true, data: rows.map((row) => row.name), show: false },\n  legend: { show: false },\n  tooltip: {\n    trigger: 'axis', renderMode: 'richText', confine: true,\n    formatter: (parameters) => detail(rows[parameters[0].dataIndex]),\n  },\n  series: [\n    {\n      name: 'Users', type: 'bar', barWidth: '80%', barMaxWidth: 40, z: 2,\n      showBackground: true, backgroundStyle: { color: theme.colors.background.secondary },\n      data: rows.map((row) => ({ value: row.count, itemStyle: { color: row.color, opacity: theme.isDark ? 0.4 : 0.2 } })),\n      emphasis: { disabled: true },\n    },\n    { ...carrier, label: { show: true, position: 'insideLeft', color: labelColor, fontSize: 16, formatter: (parameters) => rows[parameters.dataIndex].name } },\n    { ...carrier, label: { show: true, position: 'insideRight', color: labelColor, fontSize: 16, rich: { count: { fontSize: 18, fontWeight: 600, lineHeight: 20 } }, formatter: (parameters) => summary(rows[parameters.dataIndex]) } },\n  ],\n};\n"
               }
-            },
-            "version": ""
+            }
           }
         }
       },
@@ -1655,7 +1407,7 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sort_desc(identity_registration_demographics{question=\"shirt_size\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "expr": "(sort_desc(identity_registration_demographics{question=\"shirt_size\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)) and on(job, instance) identity_registration_period_info{period=\"$registration_year\"}",
                         "instant": true,
                         "legendFormat": "{{answer}}",
                         "range": false
@@ -1859,13 +1611,10 @@
               "options": {
                 "displayLabels": [],
                 "legend": {
-                  "displayMode": "table",
+                  "displayMode": "list",
                   "placement": "bottom",
                   "showLegend": true,
-                  "values": [
-                    "value",
-                    "percent"
-                  ]
+                  "values": []
                 },
                 "pieType": "donut",
                 "reduceOptions": {
@@ -1882,7 +1631,7 @@
                 }
               }
             },
-            "version": ""
+            "version": "13.1.8"
           }
         }
       },
@@ -1904,7 +1653,7 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sort_desc(identity_registration_demographics{question=\"ethnicity\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)",
+                        "expr": "(sort_desc(identity_registration_demographics{question=\"ethnicity\"} > 0) and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1)) and on(job, instance) identity_registration_period_info{period=\"$registration_year\"}",
                         "instant": true,
                         "legendFormat": "{{answer}}",
                         "range": false
@@ -1951,7 +1700,7 @@
                       },
                       "renameByName": {
                         "answer": "Ethnicity",
-                        "identity_registration_demographics": "People"
+                        "identity_registration_demographics": "Users"
                       }
                     }
                   }
@@ -1964,7 +1713,7 @@
                       "sort": [
                         {
                           "desc": true,
-                          "field": "People"
+                          "field": "Users"
                         }
                       ]
                     }
@@ -1973,7 +1722,7 @@
               ]
             }
           },
-          "description": "Multiple selections per registrant",
+          "description": "Multiple selections",
           "id": 9,
           "links": [],
           "title": "Ethnicity",
@@ -2055,8 +1804,7 @@
                       {
                         "id": "custom.cellOptions",
                         "value": {
-                          "type": "markdown",
-                          "dynamicHeight": true
+                          "type": "auto"
                         }
                       }
                     ]
@@ -2064,7 +1812,7 @@
                   {
                     "matcher": {
                       "id": "byName",
-                      "options": "People"
+                      "options": "Users"
                     },
                     "properties": [
                       {
@@ -2092,7 +1840,7 @@
                 ]
               },
               "options": {
-                "cellHeight": "sm",
+                "cellHeight": "md",
                 "enablePagination": false,
                 "footer": {
                   "show": false
@@ -2101,12 +1849,12 @@
                 "sortBy": [
                   {
                     "desc": true,
-                    "displayName": "People"
+                    "displayName": "Users"
                   }
                 ]
               }
             },
-            "version": ""
+            "version": "13.1.8"
           }
         }
       }
@@ -2125,11 +1873,11 @@
               "layout": {
                 "kind": "AutoGridLayout",
                 "spec": {
-                  "maxColumnCount": 2,
+                  "maxColumnCount": 4,
                   "columnWidthMode": "custom",
-                  "columnWidth": 280,
+                  "columnWidth": 220,
                   "rowHeightMode": "custom",
-                  "rowHeight": 168,
+                  "rowHeight": 360,
                   "fillScreen": false,
                   "items": [
                     {
@@ -2141,37 +1889,6 @@
                         }
                       }
                     },
-                    {
-                      "kind": "AutoGridLayoutItem",
-                      "spec": {
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-2"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "kind": "RowsLayoutRow",
-            "spec": {
-              "title": "",
-              "hideHeader": true,
-              "collapse": false,
-              "fillScreen": false,
-              "layout": {
-                "kind": "AutoGridLayout",
-                "spec": {
-                  "maxColumnCount": 2,
-                  "columnWidthMode": "custom",
-                  "columnWidth": 500,
-                  "rowHeightMode": "custom",
-                  "rowHeight": 400,
-                  "fillScreen": false,
-                  "items": [
                     {
                       "kind": "AutoGridLayoutItem",
                       "spec": {
@@ -2189,29 +1906,7 @@
                           "name": "panel-5"
                         }
                       }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "kind": "RowsLayoutRow",
-            "spec": {
-              "title": "",
-              "hideHeader": true,
-              "collapse": false,
-              "fillScreen": false,
-              "layout": {
-                "kind": "AutoGridLayout",
-                "spec": {
-                  "maxColumnCount": 2,
-                  "columnWidthMode": "custom",
-                  "columnWidth": 500,
-                  "rowHeightMode": "custom",
-                  "rowHeight": 400,
-                  "fillScreen": false,
-                  "items": [
+                    },
                     {
                       "kind": "AutoGridLayoutItem",
                       "spec": {
@@ -2220,15 +1915,6 @@
                           "name": "panel-6"
                         }
                       }
-                    },
-                    {
-                      "kind": "AutoGridLayoutItem",
-                      "spec": {
-                        "element": {
-                          "kind": "ElementReference",
-                          "name": "panel-7"
-                        }
-                      }
                     }
                   ]
                 }
@@ -2245,13 +1931,22 @@
               "layout": {
                 "kind": "AutoGridLayout",
                 "spec": {
-                  "maxColumnCount": 2,
+                  "maxColumnCount": 3,
                   "columnWidthMode": "custom",
-                  "columnWidth": 500,
+                  "columnWidth": 300,
                   "rowHeightMode": "custom",
-                  "rowHeight": 480,
+                  "rowHeight": 360,
                   "fillScreen": false,
                   "items": [
+                    {
+                      "kind": "AutoGridLayoutItem",
+                      "spec": {
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-7"
+                        }
+                      }
+                    },
                     {
                       "kind": "AutoGridLayoutItem",
                       "spec": {
@@ -2289,7 +1984,7 @@
                   "columnWidthMode": "custom",
                   "columnWidth": 500,
                   "rowHeightMode": "custom",
-                  "rowHeight": 440,
+                  "rowHeight": 360,
                   "fillScreen": false,
                   "items": [
                     {
@@ -2318,56 +2013,7 @@
         ]
       }
     },
-    "links": [
-      {
-        "asDropdown": false,
-        "icon": "",
-        "includeVars": false,
-        "keepTime": false,
-        "tags": [],
-        "targetBlank": false,
-        "title": "Kanidm Health",
-        "tooltip": "",
-        "type": "link",
-        "url": "/d/kanidm-health"
-      },
-      {
-        "asDropdown": false,
-        "icon": "",
-        "includeVars": false,
-        "keepTime": false,
-        "tags": [],
-        "targetBlank": false,
-        "title": "Member Demographics",
-        "tooltip": "",
-        "type": "link",
-        "url": "/d/member-demographics"
-      },
-      {
-        "asDropdown": false,
-        "icon": "",
-        "includeVars": false,
-        "keepTime": false,
-        "tags": [],
-        "targetBlank": false,
-        "title": "SSO Activity",
-        "tooltip": "",
-        "type": "link",
-        "url": "/d/auth-activity"
-      },
-      {
-        "asDropdown": false,
-        "icon": "",
-        "includeVars": false,
-        "keepTime": false,
-        "tags": [],
-        "targetBlank": false,
-        "title": "Kanidm lookup",
-        "tooltip": "",
-        "type": "link",
-        "url": "/d/kanidm-lookup"
-      }
-    ],
+    "links": [],
     "liveNow": false,
     "preload": false,
     "tags": [],
@@ -2392,6 +2038,39 @@
       "to": "now"
     },
     "title": "Member Demographics",
-    "variables": []
+    "variables": [
+      {
+        "kind": "QueryVariable",
+        "spec": {
+          "allowCustomValue": false,
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "definition": "query_result(identity_registration_period_info and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1))",
+          "hide": "dontHide",
+          "includeAll": false,
+          "label": "Year",
+          "multi": false,
+          "name": "registration_year",
+          "options": [],
+          "query": {
+            "datasource": {
+              "name": "identity-prometheus"
+            },
+            "group": "prometheus",
+            "kind": "DataQuery",
+            "version": "v0",
+            "spec": {
+              "__legacyStringValue": "query_result(identity_registration_period_info and on(job, instance) (time() - identity_registration_snapshot_timestamp_seconds < 600) and on(job, instance) (up{job=\"kanidm-observer\"} == 1))"
+            }
+          },
+          "refresh": "onDashboardLoad",
+          "regex": "/period=\"([^\"]+)\"/",
+          "skipUrlSync": false,
+          "sort": "numericalDesc"
+        }
+      }
+    ]
   }
 }

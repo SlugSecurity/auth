@@ -1430,14 +1430,22 @@ def create_app(database: Path = DATABASE) -> Flask:
                 if "person" in attrs.get("class", [])
             }
             members: list[dict[str, str]] = []
+            records = membership_store.current_records()
+            registration_period = (
+                records[0]["period"]
+                if records
+                else membership.period(membership_store.clock())["key"]
+            )
 
-            for record in membership_store.current_records():
+            for record in records:
                 person = catalog.get(record["person_uuid"])
 
                 if person is None or not kanidm.active_person(person):
                     continue
 
                 answers = record["responses"]
+                referral_other = answers.get("heard_about_other")
+                referral_sources = answers.get("heard_about")
                 member = {
                     "person_uuid": record["person_uuid"],
                     "username": person["name"][0],
@@ -1446,6 +1454,12 @@ def create_app(database: Path = DATABASE) -> Flask:
                     "preferred_name": str(answers.get("preferred_name") or ""),
                     "studies": ", ".join(membership.study_names(answers)),
                     "referral_details": membership.referral_details(answers),
+                    "referral_other": referral_other
+                    if isinstance(referral_sources, list)
+                    and "other" in referral_sources
+                    and isinstance(referral_other, str)
+                    and len(referral_other) <= 240
+                    else "",
                     "submitted_at": record["submitted_at"],
                     "expires_at": record["expires_at"],
                     "status": "Submitted",
@@ -1481,6 +1495,7 @@ def create_app(database: Path = DATABASE) -> Flask:
 
             return jsonify(
                 members=members,
+                registration_period=registration_period,
                 first_registered={
                     identifier: instant
                     for identifier, instant in membership_store.first_registrations().items()

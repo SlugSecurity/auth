@@ -192,7 +192,7 @@
               "transformations": []
             }
           },
-          "description": "Verified status probes, required capabilities and configured group reads",
+          "description": "",
           "id": 1,
           "links": [],
           "title": "Availability",
@@ -484,7 +484,7 @@
               "transformations": []
             }
           },
-          "description": "Enrollment, recovery, membership and token maintenance events",
+          "description": "",
           "id": 12,
           "links": [],
           "title": "Operational outcomes",
@@ -900,7 +900,7 @@
               "transformations": []
             }
           },
-          "description": "95th percentile of verified HTTPS status probes",
+          "description": "",
           "id": 3,
           "links": [],
           "title": "Status probe latency p95",
@@ -979,7 +979,7 @@
               "transformations": []
             }
           },
-          "description": "95th percentile of authenticated reads for configured groups",
+          "description": "",
           "id": 4,
           "links": [],
           "title": "Group read latency p95",
@@ -1115,7 +1115,7 @@
               "transformations": []
             }
           },
-          "description": "Time since the observer completed a poll",
+          "description": "",
           "id": 5,
           "links": [],
           "title": "Poll age",
@@ -1662,7 +1662,7 @@
               "transformations": []
             }
           },
-          "description": "Durable memberships awaiting expiry or native directory synchronization",
+          "description": "Pending expiry or directory sync",
           "id": 8,
           "links": [],
           "title": "Membership backlog",
@@ -1858,10 +1858,10 @@
               "transformations": []
             }
           },
-          "description": "Human accounts checked during the last successful Unix provisioning pass",
+          "description": "Last successful run",
           "id": 13,
           "links": [],
-          "title": "Unix accounts checked",
+          "title": "Unix users checked",
           "vizConfig": {
             "group": "stat",
             "kind": "VizConfig",
@@ -1937,7 +1937,7 @@
               "transformations": []
             }
           },
-          "description": "Accounts given Unix defaults during the last successful provisioning pass",
+          "description": "Last successful run",
           "id": 14,
           "links": [],
           "title": "Updated in last check",
